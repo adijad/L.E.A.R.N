@@ -88,14 +88,3 @@ Acknowledgments
 AI Models: OpenAI GPT-4,
 Frameworks: React, Flask, PostgreSQL
 Icons: FontAwesome, Material-UI
-
-
-
----
-
-### How to Use This README
-1. Replace `your-username`, API keys, and database credentials with your actual values.  
-2. Add screenshots or demo GIFs under the **Usage** section if available.  
-3. Update the license if your team chooses a different one (e.g., Apache 2.0).  
-
-Let me know if you need adjustments! 🚀
