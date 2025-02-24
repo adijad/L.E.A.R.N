@@ -1,4 +1,4 @@
-# AI-Powered Personal Tutor
+# L.E.A.R.N - AI-Powered Personal Tutor
   
 **Revolutionizing Personalized Learning with AI**
 
