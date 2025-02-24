@@ -1,6 +1,5 @@
 # AI-Powered Personal Tutor
-
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)  
+  
 **Revolutionizing Personalized Learning with AI**
 
 ---
