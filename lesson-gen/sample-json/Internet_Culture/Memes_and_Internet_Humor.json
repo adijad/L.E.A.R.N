@@ -1,0 +1,60 @@
+{
+    "lesson": {
+      "title": "Memes and Internet Humor",
+      "overview": "This lesson delves into the fascinating world of memes and internet humor, exploring their definitions, evolution, types, and cultural significance. You'll learn how these digital phenomena reflect social sentiments and shape online interactions.",
+      "previous_summary": "In the previous lessons, we learned about internet culture's foundations, including its components such as memes and online communities, and the historical evolution of the internet from ARPANET to today.",
+      "content": {
+        "definition": "Memes are units of cultural information that spread virally online, often humorously modified to comment on societal issues or trends.",
+        "evolution": [
+          {
+            "period": "Early 2000s",
+            "description": "Memes began to gain traction with early internet platforms, often in the form of simple images with captioned text."
+          },
+          {
+            "period": "2005-2010",
+            "description": "The advent of social media facilitated the rapid spread of memes, with sites like Reddit and Tumblr becoming popular hubs for meme sharing."
+          },
+          {
+            "period": "2010-Present",
+            "description": "Memes have become integral to online discourse, encompassing diverse formats including GIFs, videos, and remixes, often reflecting societal commentary."
+          }
+        ],
+        "types_of_memes": {
+          "image_macros": "Images overlaid with humorous text, often used to convey relatable feelings.",
+          "reaction_gifs": "Short animated images representing emotions or reactions in conversations.",
+          "viral_challenges": "Activities like the Ice Bucket Challenge that invite participants to create and share related content.",
+          "internet slang": "Phrases that arise out of meme culture (e.g., 'vibe check', 'FOMO'), influencing communication."
+        },
+        "cultural_significance": "Memes serve as a reflection of societal moods and can influence public opinion, provide social commentary, and foster community identity."
+      },
+      "quizzes": {
+        "question": "What type of meme involves images overlaid with humorous text?",
+        "options": [
+          "Viral challenges",
+          "Image macros",
+          "Reaction gifs",
+          "Internet slang"
+        ],
+        "answer": "Image macros"
+      },
+      "flashcards": [
+        {
+          "term": "Meme",
+          "definition": "A unit of cultural information that spreads virally online, often humorously modified."
+        },
+        {
+          "term": "Image Macro",
+          "definition": "An image with humorous text overlay, commonly used in meme culture."
+        }
+      ],
+      "graphs": {
+        "title": "Evolution of Memes Over Time",
+        "code": "<Plot data={[{x: ['2000', '2005', '2010', '2015', '2020'], y: [1, 10, 100, 500, 1000], type: 'scatter', mode: 'lines+markers'}]} layout={{ title: 'Growing Popularity of Memes Over Time', xaxis: { title: 'Year' }, yaxis: { title: 'Number of Memes Shared' } }} />"
+      },
+      "takeaways": [
+        "Memes are a vital part of modern communication, enabling cultural commentary and connection.",
+        "The evolution of memes reflects changes in technology and social interactions across the internet.",
+        "Understanding memes enhances one's ability to engage with and navigate online culture."
+      ]
+    }
+  }
