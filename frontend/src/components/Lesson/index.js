@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import {
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend
+} from 'recharts';
+
 import axios from "axios";
 import "./index.css";
 
@@ -27,6 +31,27 @@ const renderContent = (content) => {
     }
     return null;
 };
+
+const GraphRenderer = ({ graph }) => {
+    if (!graph || !graph.data || !graph.type) return null;
+
+    return (
+        <div className="lesson-graphs">
+            <h3>{graph.title}</h3>
+            {graph.type === "line" && (
+                <LineChart width={600} height={300} data={graph.data}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey={graph.xKey || "x"} />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey={graph.yKey || "y"} stroke="#8884d8" />
+                </LineChart>
+            )}
+        </div>
+    );
+};
+
 
 const LessonPage = () => {
     const { state } = useLocation();
@@ -150,12 +175,8 @@ const LessonPage = () => {
                 </div>
             )}
 
-            {lesson?.graphs && (
-                <div className="lesson-graphs">
-                    <h3>{lesson.graphs.title}</h3>
-                    <div dangerouslySetInnerHTML={{ __html: lesson.graphs.code }} />
-                </div>
-            )}
+            {lesson?.graphs && <GraphRenderer graph={lesson.graphs} />}
+
 
             {lesson?.takeaways && (
                 <div className="lesson-takeaways">

@@ -161,7 +161,7 @@ async def generate_lesson(request: LessonRequest):
                 },
                 {
                     "role": "user",
-                    "content": f"Generate a detailed lesson on '{request.lesson_name}'. This is part of a structured course. Here is the course's Table of Contents:\n\n{table_of_contents}\n\nIf possible, provide a brief summary of the previous lessons to maintain continuity: {previous_context}\n\nFormat the lesson as JSON. Include lesson content, quizzes, flashcards, graphs (code in Svelte using Layer Cake), and key takeaways.",
+                    "content": f"Generate a detailed lesson on '{request.lesson_name}'. This is part of a structured course. Here is the course's Table of Contents:\n\n{table_of_contents}\n\nIf possible, provide a brief summary of the previous lessons to maintain continuity: {previous_context}\n\nFormat the lesson as JSON. Include lesson content, quizzes, flashcards, graphs (code in React using Recharts library but only return structured data like {{title, type, xKey, yKey, data}}, not full component code or imports), and key takeaways.",
                 },
             ],
             response_format={"type": "json_object"}
