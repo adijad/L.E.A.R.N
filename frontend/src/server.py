@@ -10,14 +10,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 # Initialize OpenAI client
-client = OpenAI(api_key="REMOVED_OPENAI_API_KEY")
+client = OpenAI(
+    api_key="REMOVED_OPENAI_API_KEY"
+)
 
 # ✅ Add this before defining endpoints
 origins = [
     "http://localhost:3000",
     "http://localhost:3002",
     "http://127.0.0.1:3000",
-    "http://127.0.0.1:3002"
+    "http://127.0.0.1:3002",
 ]
 
 # Initialize FastAPI
@@ -29,7 +31,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 
 # ------------------------------
@@ -142,25 +143,45 @@ async def generate_lesson(request: LessonRequest):
     table_of_contents = "\n".join(request.toc)
     previous_context = load_previous_lessons(request.topic)
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": 'You are an AI tutor that creates structured and interactive learning lessons. Ensure lessons are engaging, well-organized, and contain quizzes. For every lesson you generate, you follow the following JSON format: \{"lesson": \{title: "", overview:"", previous_summary:"", content: \{ you are free to take liberties here\}, quizzes: {question, options, answer}, flashcards: {term, definition} \}, graphs: {title, code}, takeaways: [] \}. You dont need to have all interactive elements in one lesson but you may have them as you see fit and relevant.',
-            },
-            {
-                "role": "user",
-                "content": f"Generate a detailed lesson on '{request.lesson_name}'. This is part of a structured course. Here is the course's Table of Contents:\n\n{table_of_contents}\n\nIf possible, provide a brief summary of the previous lessons to maintain continuity: {previous_context}\n\nFormat the lesson as JSON. Include lesson content, quizzes, flashcards, graphs (code in Svelte using Layer Cake), and key takeaways.",
-            },
-        ],
-    )
+    max_retries = 5
+    delay_seconds = 2
+    attempt = 0
+    lesson_data = None
 
-    lesson_json_str = response.choices[0].message.content
-    lesson_data = clean_json_response(lesson_json_str)
+    while attempt < max_retries:
+        attempt += 1
+        print(f"🔁 Attempt {attempt} to get valid lesson JSON...")
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": 'You are an AI tutor that creates structured and interactive learning lessons. Ensure lessons are engaging, well-organized, and contain quizzes. For every lesson you generate, you follow the following JSON format: \{"lesson": \{title: "", overview:"", previous_summary:"", content: \{ you are free to take liberties here\}, quizzes: {question, options, answer}, flashcards: {term, definition} \}, graphs: {title, code}, takeaways: [] \}. You dont need to have all interactive elements in one lesson but you may have them as you see fit and relevant.',
+                },
+                {
+                    "role": "user",
+                    "content": f"Generate a detailed lesson on '{request.lesson_name}'. This is part of a structured course. Here is the course's Table of Contents:\n\n{table_of_contents}\n\nIf possible, provide a brief summary of the previous lessons to maintain continuity: {previous_context}\n\nFormat the lesson as JSON. Include lesson content, quizzes, flashcards, graphs (code in Svelte using Layer Cake), and key takeaways.",
+                },
+            ],
+            response_format={"type": "json_object"}
+        )
+
+        lesson_json_str = response.choices[0].message.content
+        lesson_data = clean_json_response(lesson_json_str)
+
+        if lesson_data:
+            print("✅ Successfully parsed lesson JSON.")
+            break
+        else:
+            print(f"❌ Attempt {attempt} failed to parse JSON.")
+            time.sleep(delay_seconds)
 
     if lesson_data is None:
-        raise HTTPException(status_code=500, detail="Failed to parse lesson JSON.")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to parse lesson JSON after multiple retries.",
+        )
 
     save_lesson(request.topic, request.lesson_name, lesson_data)
     return {"lesson": lesson_data}

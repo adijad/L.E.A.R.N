@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
+import "./index.css";
 
-// Recursive function to render content dynamically
+// Recursive function to render any kind of content (string, array, or object)
 const renderContent = (content) => {
     if (typeof content === "string" || typeof content === "number") {
         return <p>{content}</p>;
@@ -40,13 +41,16 @@ const LessonPage = () => {
             const fetchLesson = async () => {
                 try {
                     console.log("Request Payload:", { topic, lesson_name, toc });
-                    const response = await axios.post("http://127.0.0.1:8000/generate_lesson", {
-                        topic,
-                        lesson_name,
-                        toc,
-                    });
+                    const response = await axios.post(
+                        "http://127.0.0.1:8000/generate_lesson",
+                        {
+                            topic,
+                            lesson_name,
+                            toc,
+                        }
+                    );
                     console.log("Response Body:", response.data);
-                    // If the API returns lesson data nested as response.data.lesson.lesson, extract it
+                    // Extract inner lesson data if nested
                     const lessonData = response.data.lesson.lesson
                         ? response.data.lesson.lesson
                         : response.data.lesson;
@@ -80,12 +84,8 @@ const LessonPage = () => {
             {lesson?.previous_summary && (
                 <div className="lesson-summary">
                     <h3>Previous Summary</h3>
-                    {Array.isArray(lesson.previous_summary) ? (
-                        <ul>
-                            {lesson.previous_summary.map((summary, index) => (
-                                <li key={index}>{summary}</li>
-                            ))}
-                        </ul>
+                    {typeof lesson.previous_summary === "object" ? (
+                        renderContent(lesson.previous_summary)
                     ) : (
                         <p>{lesson.previous_summary}</p>
                     )}
@@ -138,7 +138,10 @@ const LessonPage = () => {
                 <div className="lesson-flashcards">
                     <h3>Flashcards</h3>
                     <ul>
-                        {lesson.flashcards.map((flashcard, index) => (
+                        {(Array.isArray(lesson.flashcards)
+                            ? lesson.flashcards
+                            : Object.values(lesson.flashcards)
+                        ).map((flashcard, index) => (
                             <li key={index} className="flashcard-item">
                                 <strong>{flashcard.term}:</strong> {flashcard.definition}
                             </li>
