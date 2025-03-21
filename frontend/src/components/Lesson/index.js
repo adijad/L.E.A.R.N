@@ -4,6 +4,9 @@ import {
     LineChart, Line,
     BarChart, Bar,
     PieChart, Pie, Cell,
+    AreaChart, Area,
+    ScatterChart, Scatter,
+    RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
     XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
@@ -41,7 +44,15 @@ const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#FFBB28'
 const GraphRenderer = ({ graph }) => {
     if (!graph || !graph.data || !graph.type) return null;
 
-    const { type, title, data, xKey = 'x', yKey = 'y' } = graph;
+    const {
+        type,
+        title,
+        data,
+        xKey = 'x',
+        yKey = 'y',
+        categoryKey, // for radar charts
+        dataKey // for radar or pie
+    } = graph;
 
     return (
         <div className="lesson-graphs">
@@ -87,17 +98,60 @@ const GraphRenderer = ({ graph }) => {
                             outerRadius={100}
                             label
                         >
-                            {data.map((entry, index) => (
+                            {data.map((_, index) => (
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                         </Pie>
                     </PieChart>
                 </ResponsiveContainer>
             )}
+
+            {type === "area" && (
+                <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={data}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey={xKey} />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Area type="monotone" dataKey={yKey} stroke="#8884d8" fill="#8884d8" />
+                    </AreaChart>
+                </ResponsiveContainer>
+            )}
+
+            {type === "scatter" && (
+                <ResponsiveContainer width="100%" height={300}>
+                    <ScatterChart>
+                        <CartesianGrid />
+                        <XAxis dataKey={xKey} />
+                        <YAxis dataKey={yKey} />
+                        <Tooltip />
+                        <Legend />
+                        <Scatter name={title} data={data} fill="#8884d8" />
+                    </ScatterChart>
+                </ResponsiveContainer>
+            )}
+
+            {type === "radar" && (
+                <ResponsiveContainer width="100%" height={300}>
+                    <RadarChart data={data}>
+                        <PolarGrid />
+                        <PolarAngleAxis dataKey={categoryKey || xKey} />
+                        <PolarRadiusAxis />
+                        <Tooltip />
+                        <Radar
+                            name={title}
+                            dataKey={dataKey || yKey}
+                            stroke="#8884d8"
+                            fill="#8884d8"
+                            fillOpacity={0.6}
+                        />
+                    </RadarChart>
+                </ResponsiveContainer>
+            )}
         </div>
     );
 };
-
 
 
 const LessonPage = () => {
