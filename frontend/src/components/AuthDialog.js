@@ -1,84 +1,105 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import './Auth.css'; // Create this CSS file
+import '../css/Auth.css';
 
-const AuthDialog = () => {
+const AuthDialog = ({ setIsAuthenticated }) => {
     const [isLogin, setIsLogin] = useState(true);
+    const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [error, setError] = useState('');
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+        setError('');
 
-        axios.post(`http://localhost:8080${endpoint}`, { email, password })
+        if (!isLogin && password !== confirmPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+
+        const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+        const payload = isLogin ? { email, password } : { fullName, email, password };
+
+        axios.post(`http://localhost:8080${endpoint}`, payload)
             .then(response => {
                 console.log(`${isLogin ? 'Login' : 'Registration'} successful:`, response.data);
-                // Handle success (redirect/store token)
+                setIsAuthenticated(true); // Set user as authenticated
             })
             .catch(error => {
-                console.error(`Error during ${isLogin ? 'login' : 'registration'}:`, error);
+                setError(error.response?.data?.message || 'An error occurred');
             });
     };
 
     return (
         <div className="auth-container">
-            <div className="auth-background">
-                <div className="auth-glassmorphism">
-                    <div className="auth-content">
-                        <div className="auth-tabs">
-                            <button
-                                className={`tab ${isLogin ? 'active' : ''}`}
-                                onClick={() => setIsLogin(true)}
-                            >
-                                Login
-                            </button>
-                            <button
-                                className={`tab ${!isLogin ? 'active' : ''}`}
-                                onClick={() => setIsLogin(false)}
-                            >
-                                Sign Up
-                            </button>
+            <div className="auth-card">
+                <div className="auth-header">
+                    <h2>{isLogin ? 'Welcome Back' : 'Join L.E.A.R.N'}</h2>
+                </div>
+
+                <form onSubmit={handleSubmit}>
+                    {!isLogin && (
+                        <div className="form-group">
+                            <label>Full Name</label>
+                            <input
+                                type="text"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                required
+                            />
                         </div>
+                    )}
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <input
-                                    type="email"
-                                    placeholder="Email address"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <input
-                                    type="password"
-                                    placeholder="Password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <button type="submit" className="auth-button">
-                                {isLogin ? 'Login' : 'Create Account'}
-                            </button>
-                        </form>
-
-                        {isLogin && (
-                            <div className="auth-options">
-                                <a href="/forgot-password">Forgot password?</a>
-                                <div className="social-login">
-                                    <button className="google-btn">
-                                        Continue with Google
-                                    </button>
-                                    <button className="github-btn">
-                                        Continue with GitHub
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                    <div className="form-group">
+                        <label>Email</label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
                     </div>
+
+                    <div className="form-group">
+                        <label>Password</label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    {!isLogin && (
+                        <div className="form-group">
+                            <label>Confirm Password</label>
+                            <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+                    )}
+
+                    {error && <div className="error-message">{error}</div>}
+
+                    <button type="submit" className="auth-button">
+                        {isLogin ? 'Sign In' : 'Create Account'}
+                    </button>
+                </form>
+
+                <div className="auth-footer">
+                    {isLogin ? (
+                        <>
+                            <a href="/forgot-password">Forgot password?</a>
+                            <p>Don't have an account? <span onClick={() => setIsLogin(false)} className="auth-link">Sign up</span></p>
+                        </>
+                    ) : (
+                        <p>Already have an account? <span onClick={() => setIsLogin(true)} className="auth-link">Sign in</span></p>
+                    )}
                 </div>
             </div>
         </div>

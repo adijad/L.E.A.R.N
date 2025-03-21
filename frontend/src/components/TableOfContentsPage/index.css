@@ -1,0 +1,83 @@
+.toc-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+    text-align: center;
+  }
+  
+  h1 {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c3e50;
+  }
+  
+  .toc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  
+  .toc-table th,
+  .toc-table td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+  }
+  
+  .toc-table th {
+    background-color: #ecf0f1;
+    font-weight: bold;
+  }
+  
+  .toc-table tr {
+    cursor: pointer;
+    transition: background 0.3s ease-in-out;
+  }
+  
+  /* Active Lesson (First lesson) */
+  .active-lesson {
+    font-weight: bold;
+    color: #27ae60;
+  }
+  
+  .active-lesson:hover {
+    background-color: #e8f5e9;
+  }
+  
+  /* Locked Lessons */
+  .disabled-lesson {
+    color: #bdc3c7;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+  
+  /* Close Button */
+  .close-button {
+    background: #e74c3c;
+    color: white;
+    padding: 12px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    margin-top: 20px;
+    cursor: pointer;
+  }
+  
+  .close-button:hover {
+    background: #c0392b;
+  }
+  
+  .error {
+    color: red;
+    font-weight: bold;
+  }
+  

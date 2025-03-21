@@ -1,0 +1,130 @@
+/* General Styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Arial", sans-serif;
+  }
+  
+  body {
+    background:color(white red green blue);
+    background-size: cover;
+  }
+  
+  /* Topic Search Container */
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+  }
+  
+  /* Heading */
+  h1 {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-align: center;
+    color: #2c3e50;
+  }
+  
+  /* Input Box */
+  .input-box {
+    width: 100%;
+    max-width: 500px;
+    padding: 12px;
+    border: 2px solid #3498db;
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+    transition: border 0.3s ease-in-out;
+  }
+  
+  .input-box:focus {
+    border: 2px solid #1abc9c;
+  }
+  
+  /* Search Button */
+  .button {
+    background: #3498db;
+    color: white;
+    padding: 12px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    margin-top: 15px;
+    cursor: pointer;
+    transition: background 0.3s ease-in-out;
+  }
+  
+  .button:hover {
+    background: #2980b9;
+  }
+  
+  /* Table of Contents Container */
+  .toc-box {
+    width: 100%;
+    max-width: 700px;
+    margin-top: 20px;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  /* TOC Table */
+  .toc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  
+  .toc-table th,
+  .toc-table td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+  }
+  
+  .toc-table th {
+    background-color: #ecf0f1;
+    font-weight: bold;
+  }
+  
+  .toc-table tr:hover {
+    background-color: #f9f9f9;
+  }
+  
+  /* Lesson Styling */
+  .active-lesson {
+    font-weight: bold;
+    cursor: pointer;
+    color: #27ae60;
+  }
+  
+  .disabled-lesson {
+    color: #bdc3c7;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .container {
+      width: 90%;
+    }
+    .input-box {
+      width: 100%;
+    }
+  }
+  

@@ -3,6 +3,7 @@ package com.ai.tutor.backend.entity;
 import jakarta.persistence.*;
 
 @Entity
+@Table(name = "users", schema = "public")  // Specify schema if required
 public class Users {
 
     @Id
@@ -17,6 +18,22 @@ public class Users {
 
     @Column(nullable = false)
     private String fullName;
+
+    @Column(nullable = false)
+    private String otp = "";  // Default empty string
+
+    @Column(nullable = false)
+    private long otpExpiration = 0L;  // Default 0 to avoid null issues
+
+    @Column(nullable = false)
+    private boolean verified = false;  // Default false
+
+    // Default Constructor
+    public Users() {
+        this.otp = "";
+        this.otpExpiration = 0L;
+        this.verified = false;
+    }
 
     // Getters and Setters
     public Long getId() {
@@ -49,5 +66,29 @@ public class Users {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public String getOtp() {
+        return otp;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
+    }
+
+    public long getOtpExpiration() {
+        return otpExpiration;
+    }
+
+    public void setOtpExpiration(long otpExpiration) {
+        this.otpExpiration = otpExpiration;
+    }
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
     }
 }

@@ -1,0 +1,114 @@
+/* General Styles */
+.lesson-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+.lesson-title {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.lesson-overview {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+/* Previous Summary */
+.lesson-summary {
+    margin-bottom: 2rem;
+}
+
+/* Content Styles */
+.lesson-content {
+    margin-bottom: 2rem;
+    padding: 10px;
+    background: #fdfdfd;
+    border: 1px solid #eee;
+}
+
+.content-section {
+    margin-bottom: 1.5rem;
+    padding: 10px;
+    border-left: 3px solid #ccc;
+}
+
+.content-key {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+/* Quiz Styles */
+.lesson-quizzes {
+    margin-top: 2rem;
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+}
+
+.quiz-item {
+    margin-bottom: 1rem;
+}
+
+.quiz-question {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.quiz-options {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.quiz-options li {
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+}
+
+.quiz-answer {
+    font-size: 1rem;
+    margin-top: 0.5rem;
+    color: #007BFF;
+}
+
+/* Flashcards Styles */
+.lesson-flashcards {
+    margin-top: 2rem;
+    padding: 10px;
+    background: #eef9ff;
+    border: 1px solid #bbdffb;
+}
+
+.flashcard-item {
+    margin-bottom: 0.5rem;
+}
+
+/* Graphs and Takeaways */
+.lesson-graphs,
+.lesson-takeaways {
+    margin-top: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .lesson-title {
+        font-size: 2rem;
+    }
+
+    .lesson-overview {
+        font-size: 1rem;
+    }
+
+    .content-key {
+        font-size: 1.2rem;
+    }
+
+    .quiz-question {
+        font-size: 1rem;
+    }
+}
