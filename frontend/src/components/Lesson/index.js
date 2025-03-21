@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend
+    LineChart, Line,
+    BarChart, Bar,
+    PieChart, Pie, Cell,
+    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
+
 
 import axios from "axios";
 import "./index.css";
@@ -32,25 +36,68 @@ const renderContent = (content) => {
     return null;
 };
 
+const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#FFBB28'];
+
 const GraphRenderer = ({ graph }) => {
     if (!graph || !graph.data || !graph.type) return null;
 
+    const { type, title, data, xKey = 'x', yKey = 'y' } = graph;
+
     return (
         <div className="lesson-graphs">
-            <h3>{graph.title}</h3>
-            {graph.type === "line" && (
-                <LineChart width={600} height={300} data={graph.data}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey={graph.xKey || "x"} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey={graph.yKey || "y"} stroke="#8884d8" />
-                </LineChart>
+            <h3>{title}</h3>
+
+            {type === "line" && (
+                <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={data}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey={xKey} />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey={yKey} stroke="#8884d8" />
+                    </LineChart>
+                </ResponsiveContainer>
+            )}
+
+            {type === "bar" && (
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={data}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey={xKey} />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey={yKey} fill="#82ca9d" />
+                    </BarChart>
+                </ResponsiveContainer>
+            )}
+
+            {type === "pie" && (
+                <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                        <Tooltip />
+                        <Legend />
+                        <Pie
+                            data={data}
+                            dataKey={yKey}
+                            nameKey={xKey}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={100}
+                            label
+                        >
+                            {data.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                        </Pie>
+                    </PieChart>
+                </ResponsiveContainer>
             )}
         </div>
     );
 };
+
 
 
 const LessonPage = () => {
