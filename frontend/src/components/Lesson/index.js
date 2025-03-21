@@ -263,18 +263,26 @@ const LessonPage = () => {
             {lesson?.flashcards && (
                 <div className="lesson-flashcards">
                     <h3>Flashcards</h3>
-                    <ul>
+                    <div className="flashcard-grid">
                         {(Array.isArray(lesson.flashcards)
                             ? lesson.flashcards
                             : Object.values(lesson.flashcards)
                         ).map((flashcard, index) => (
-                            <li key={index} className="flashcard-item">
-                                <strong>{flashcard.term}:</strong> {flashcard.definition}
-                            </li>
+                            <div key={index} className="flashcard">
+                                <div className="flashcard-inner">
+                                    <div className="flashcard-front">
+                                        <p>{flashcard.term}</p>
+                                    </div>
+                                    <div className="flashcard-back">
+                                        <p>{flashcard.definition}</p>
+                                    </div>
+                                </div>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 </div>
             )}
+
 
             {lesson?.graphs && <GraphRenderer graph={lesson.graphs} />}
 
