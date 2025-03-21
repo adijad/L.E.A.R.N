@@ -164,8 +164,89 @@
     border: 1px solid #0056b3;
 }
 
-
 /*-------*/
+
+/* next lesson */
+.lesson-navigation {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.next-button {
+    background-color: #007BFF;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    font-size: 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.next-button:hover {
+    background-color: #0056b3;
+}
+
+/* --------- */
+
+/* floating toc */
+/* Layout */
+.lesson-layout {
+    display: flex;
+    align-items: flex-start;
+}
+
+/* Sidebar */
+.lesson-sidebar {
+    width: 250px;
+    position: sticky;
+    top: 20px;
+    margin-right: 20px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    height: fit-content;
+}
+
+.lesson-toc {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.lesson-toc li {
+    padding: 10px;
+    font-size: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.toc-visited {
+    color: #2ecc71;
+}
+
+.toc-current {
+    font-weight: bold;
+    color: #3498db;
+}
+
+.toc-locked {
+    color: #ccc;
+    pointer-events: none;
+}
+
+/* Locked section */
+.locked-section {
+    padding: 20px;
+    background-color: #f0f0f0;
+    color: #999;
+    font-style: italic;
+    text-align: center;
+    border: 1px dashed #bbb;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+/* ---------- */
 
 /* Responsive Design */
 @media (max-width: 768px) {
