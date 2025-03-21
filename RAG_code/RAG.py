@@ -44,30 +44,37 @@ google_cse_id = os.getenv("GOOGLE_CSE_ID")
 ### Initialize Wikipedia API Wrapper for Document Retrieval
 #---------------------------------------------------------------
 
-console = Console()
 class WikipediaRetriever:
     def __init__(self, top_k_results=3, doc_content_chars_max=500):
         self.wrapper = WikipediaAPIWrapper(top_k_results=top_k_results, doc_content_chars_max=doc_content_chars_max)
 
     def search(self, query):
-        result = self.wrapper.run(query)  # Retrieve Wikipedia content
-        urls = [f"https://en.wikipedia.org/wiki/{query.replace(' ', '_')}"]  # Construct Wikipedia URL
-        return {"content": result, "urls": urls}
+        # Retrieve Wikipedia content
+        result = self.wrapper.run(query)
 
-api_wrapper = WikipediaAPIWrapper(top_k_results=3, doc_content_chars_max=200)
-wiki = WikipediaQueryRun(api_wrapper=api_wrapper)
+        # Instead of returning the full content, extract only the URLs
+        # urls = [f"https://en.wikipedia.org/wiki/{query.replace(' ', '_')}" for _ in range(len(result))]
+        #
+        # return {"references": urls}
+        url = f"https://en.wikipedia.org/wiki/{query.replace(' ', '_')}"
+
+        # Return only the single reference URL
+        return {"references": [url]}
 
 
+# Modify the Wikipedia tool to call this retriever
 def wikipedia_with_clickable_link(query):
     retriever = WikipediaRetriever()
     result = retriever.search(query)
 
-    url = result["urls"][0]
+    # Only return the references (URLs)
+    references = result["references"]
 
-    response = f"Response: {result['content']}\n\nSource: {url}"
-    console.print(f"[bold green]Response: {result['content']}[/bold green]\n")
-    console.print(f"[bold blue][link={url}]Click here to see the Wikipedia article on {query}[/link][/bold blue]")
-    return response
+    # # Log or print the references
+    # for ref in references:
+    #     print(f"Source: {ref}")
+
+    return references
 
 # ## Test Wikipedia Tool
 # query = "Quantum Computing"
@@ -250,8 +257,8 @@ def retrieve_pubmed_articles(query):
         url = f"https://pubmed.ncbi.nlm.nih.gov/{article_id}"
 
         # Render link with Rich
-        console.print(f"[bold green]PubMed Response: {article_content[:300]}...[/bold green]")
-        console.print(f"[bold blue][link={url}]Click here to see the full article[/link][/bold blue]\n")
+        # console.print(f"[bold green]PubMed Response: {article_content[:300]}...[/bold green]")
+        # console.print(f"[bold blue][link={url}]Click here to see the full article[/link][/bold blue]\n")
 
     # Store new results in FAISS only if there are documents
     doc_objects = [Document(page_content=doc['content']) for doc in docs]
@@ -296,8 +303,6 @@ pubmed_tool = Tool(
 
 
 tools = [wikipedia_tool, pubmed_tool]
-
-tools
 
 
 
