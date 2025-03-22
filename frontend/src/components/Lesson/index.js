@@ -164,28 +164,64 @@ const GraphRenderer = ({ graph }) => {
    2) RENDER CONTENT RECURSIVELY
 ----------------------------------------------- */
 const renderContent = (content) => {
+    // If content is a string or number, render it as a paragraph with bold content
     if (typeof content === "string" || typeof content === "number") {
-        return <p>{content}</p>;
+        return <p className="font-bold text-gray-700">{content}</p>;
     }
+
+    // If content is an array, recursively render each item
     if (Array.isArray(content)) {
         return (
-            <ul>
+            <div className="pl-4">
                 {content.map((item, index) => (
-                    <li key={index}>{renderContent(item)}</li>
+                    <div key={index} className="mb-6">
+                        {renderContent(item)}
+                    </div>
                 ))}
-            </ul>
+            </div>
         );
     }
+
+    // If content is an object, recursively handle its content
     if (typeof content === "object" && content !== null) {
-        return Object.keys(content).map((key) => (
-            <div key={key} className="content-section">
-                <h4 className="content-key">{key}</h4>
-                {renderContent(content[key])}
-            </div>
-        ));
+        return Object.keys(content).map((key) => {
+            const item = content[key];
+
+            // If the item contains both "heading" and "description", render them
+            if (item.heading && item.description) {
+                return (
+                    <div key={key} className="mb-6">
+                        <h3 className="text-2xl font-semibold text-blue-800">{item.heading}</h3>
+                        <p className="font-bold text-gray-700">{item.description}</p>
+                    </div>
+                );
+            }
+
+            // If the item is an array or object, recursively render its content
+            if (typeof item === 'object' || Array.isArray(item)) {
+                return (
+                    <div key={key} className="content-section mb-6">
+                        <div className="font-bold text-xl">{renderContent(item)}</div>
+                    </div>
+                );
+            }
+
+            // Render the content (value) as bold inside the section
+            return (
+                <div key={key} className="content-section mb-6">
+                    <p className="font-bold text-gray-700">{item}</p>
+                </div>
+            );
+        });
     }
+
     return null;
 };
+
+
+
+
+
 
 /* -----------------------------------------------
    3) INTERACTIVE COMPONENTS (actual logic)
@@ -480,7 +516,7 @@ const InteractiveRenderer = ({ interactive }) => {
 const LessonPage = () => {
     const { state } = useLocation();
     const { topic, lesson_name, toc } = state || {};
-
+    const [references, setReferences] = useState([]);
     const [lesson, setLesson] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -501,9 +537,12 @@ const LessonPage = () => {
                 const lessonData = response.data.lesson.lesson
                     ? response.data.lesson.lesson
                     : response.data.lesson;
-                setLesson(lessonData);
-                console.log("Full Lesson:", lessonData);
 
+                const referencesData = response.data.lesson.references || [];
+                setLesson(lessonData);
+                setReferences(referencesData);
+                console.log("Full Lesson:", lessonData);
+                console.log("Full Lesson:", referencesData);
                 const index = toc.findIndex((item) => item === lesson_name);
                 setCurrentLessonIndex(index);
             } catch (err) {
@@ -567,8 +606,8 @@ const LessonPage = () => {
                                 index < currentLessonIndex
                                     ? "toc-visited"
                                     : index === currentLessonIndex
-                                    ? "toc-current"
-                                    : "toc-locked"
+                                        ? "toc-current"
+                                        : "toc-locked"
                             }
                         >
                             {item}
@@ -663,8 +702,8 @@ const LessonPage = () => {
                             <h3>Flashcards</h3>
                             <div className="flashcard-grid">
                                 {(Array.isArray(lesson.flashcards)
-                                    ? lesson.flashcards
-                                    : Object.values(lesson.flashcards)
+                                        ? lesson.flashcards
+                                        : Object.values(lesson.flashcards)
                                 ).map((flashcard, index) => (
                                     <div key={index} className="flashcard">
                                         <div className="flashcard-inner">
@@ -705,6 +744,40 @@ const LessonPage = () => {
                             </ul>
                         </div>
                     )}
+
+                    {/* References Section */}
+                    {references.length > 0 && (
+                        <div className="lesson-references bg-gray-100 p-4 rounded-lg shadow-md">
+                            <h3 className="text-xl font-bold mb-2 text-left">References</h3>
+                            <div className="space-y-2">
+                                {references.map((ref, index) => {
+                                    // Extract only the URL starting from "https"
+                                    const cleanLink = ref.split('Source:')[1]?.trim().split(']')[0] || ref;
+
+                                    return (
+                                        <div key={index} className="flex items-center space-x-2 p-2 bg-white rounded-md shadow-sm">
+                                            <img
+                                                src="https://upload.wikimedia.org/wikipedia/commons/6/63/Wikipedia-logo.png"
+                                                alt="Wikipedia"
+                                                className="w-2 h-2" // Even smaller size for the Wikipedia logo
+                                            />
+                                            <a
+                                                href={cleanLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 font-semibold hover:underline"
+                                            >
+                                                {cleanLink} {/* Only show the cleaned link */}
+                                            </a>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+
+
 
                     {/* Next Lesson */}
                     {currentLessonIndex < toc.length - 1 && (

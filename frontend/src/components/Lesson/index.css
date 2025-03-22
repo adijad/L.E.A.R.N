@@ -125,6 +125,75 @@
     background-color: #0056b3;
 }
 
+/* References Section */
+.lesson-references {
+    margin-top: 2rem;
+    background: #fdfdfd;
+    padding: 15px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.references-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.references-title i {
+    color: #007BFF;
+    font-size: 1.8rem;
+}
+
+.references-list {
+    list-style-type: none;
+    padding-left: 0;
+    margin-top: 10px;
+}
+
+.references-list li {
+    font-size: 1rem;
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+}
+
+.references-list li a {
+    color: #007BFF;
+    text-decoration: none;
+    transition: color 0.3s ease;
+    margin-left: 5px;
+}
+
+.references-list li a:hover {
+    color: #0056b3;
+}
+
+.references-list li i {
+    font-size: 1.2rem;
+    color: #777;
+    margin-right: 10px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .lesson-references {
+        padding: 10px;
+    }
+    .references-title {
+        font-size: 1.3rem;
+    }
+    .references-list li {
+        font-size: 0.9rem;
+    }
+}
+
+
 /* Graphs */
 .lesson-graphs {
     background: #f4f4f4;
@@ -197,6 +266,7 @@
     font-size: 1.1rem;
     text-align: center;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
 }
 
 .flashcard-front {
@@ -210,6 +280,45 @@
     color: white;
     transform: rotateY(180deg);
     border: 1px solid #0056b3;
+}
+
+.flashcard:hover .flashcard-front,
+.flashcard:hover .flashcard-back {
+    overflow: visible;
+    white-space: normal;
+    word-wrap: break-word;
+    height: auto;
+    min-height: 150px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .lesson-layout {
+        flex-direction: column;
+        align-items: center;
+    }
+    .lesson-sidebar {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    .lesson-title {
+        font-size: 2rem;
+    }
+    .lesson-overview {
+        font-size: 1rem;
+    }
+    .content-key {
+        font-size: 1.2rem;
+    }
+    .quiz-question {
+        font-size: 1rem;
+    }
+    .flashcard-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    .flashcard-inner {
+        height: auto;
+    }
 }
 
 /* ------------- Interactives ------------- */

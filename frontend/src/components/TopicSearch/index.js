@@ -27,7 +27,7 @@ const TopicSearch = () => {
                         onChange={(e) => setTopic(e.target.value)}
                         placeholder="Enter a topic..."
                     />
-                    <button className="button" onClick={fetchTOC}>Generate Table of Contents</button>
+                    <button className="button" onClick={fetchTOC}>L.E.A.R.N</button>
                 </>
             )}
 
