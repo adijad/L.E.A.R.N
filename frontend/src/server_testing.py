@@ -109,19 +109,20 @@ def rag_retrieve(query: str) -> list:
     try:
         response = agent_executor.invoke({"input": query})
         output_text = response.get("output", "")
+        print(f"Raw output from agent_executor: {output_text}")
 
         references = []
-        urls = re.findall(r'https?://[^\s]+', output_text)
+        urls = re.findall(r'https?://[^\s\)]+', output_text)
         urls = list(set(urls))
 
         for url in urls:
-            references.append(f"Source: {url.strip()}")
+            clean_url = re.sub(r'[\)\]]$', '', url) # Removing `]` if it was part of the URL in Markdown
+            references.append(f"Source: {clean_url.strip()}")
         if not references:
             print(" No references found. Using fallback.")
             references = [{"reference": "No references found."}]
 
         return references
-
 
     except Exception as e:
         print(f" Error in RAG retrieval: {e}")

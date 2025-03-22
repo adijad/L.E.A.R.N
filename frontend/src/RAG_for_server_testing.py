@@ -31,6 +31,13 @@ from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+import faiss
+import numpy as np
+from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
+from langchain.schema import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+import requests
+
 
 # --------------------------------------------------------------
 ###Load environment variables
@@ -44,44 +51,78 @@ google_cse_id = os.getenv("GOOGLE_CSE_ID")
 ### Initialize Wikipedia API Wrapper for Document Retrieval
 #---------------------------------------------------------------
 
+# class WikipediaRetriever:
+#     def __init__(self, top_k_results=3, doc_content_chars_max=500):
+#         self.wrapper = WikipediaAPIWrapper(top_k_results=top_k_results, doc_content_chars_max=doc_content_chars_max)
+#
+#     def search(self, query):
+#         result = self.wrapper.run(query)
+#         url = f"https://en.wikipedia.org/wiki/{query.replace(' ', '_')}"
+#         return {"references": [url]}
+#
+# # Modify the Wikipedia tool to call this retriever
+# def wikipedia_with_clickable_link(query):
+#     retriever = WikipediaRetriever()
+#     result = retriever.search(query)
+#     references = result["references"]
+#     return references
+
+import requests
+import re
+
 class WikipediaRetriever:
-    def __init__(self, top_k_results=3, doc_content_chars_max=500):
-        self.wrapper = WikipediaAPIWrapper(top_k_results=top_k_results, doc_content_chars_max=doc_content_chars_max)
+    def __init__(self, top_k_results=3):
+        self.top_k_results = top_k_results
+        self.api_url = "https://en.wikipedia.org/w/api.php"
 
     def search(self, query):
-        # Retrieve Wikipedia content
-        result = self.wrapper.run(query)
+        params = {
+            'action': 'query',
+            'format': 'json',
+            'list': 'search',
+            'srsearch': query,
+            'srlimit': self.top_k_results,
+            'utf8': 1
+        }
 
-        # Instead of returning the full content, extract only the URLs
-        # urls = [f"https://en.wikipedia.org/wiki/{query.replace(' ', '_')}" for _ in range(len(result))]
-        #
-        # return {"references": urls}
-        url = f"https://en.wikipedia.org/wiki/{query.replace(' ', '_')}"
+        # Send a request to Wikipedia's API to search for articles
+        response = requests.get(self.api_url, params=params)
 
-        # Return only the single reference URL
-        return {"references": [url]}
+        if response.status_code == 200:
+            search_results = response.json().get('query', {}).get('search', [])
+            references = []
+
+            # Extract the titles and create URLs
+            for result in search_results:
+                title = result['title']
+                # Clean the URL by removing any Markdown syntax
+                url = f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}"
+                references.append(url)
+
+            return references
+        else:
+            return []
 
 
-# Modify the Wikipedia tool to call this retriever
 def wikipedia_with_clickable_link(query):
-    retriever = WikipediaRetriever()
-    result = retriever.search(query)
+    retriever = WikipediaRetriever(top_k_results=3)
+    references = retriever.search(query)
 
-    # Only return the references (URLs)
-    references = result["references"]
+    # Clean references: Remove any unwanted newlines or special characters
+    clean_references = [ref.replace("\n", "") for ref in references]
 
-    # # Log or print the references
-    # for ref in references:
-    #     print(f"Source: {ref}")
+    # Debugging: Check the cleaned references
+    print(f"Clean References: {clean_references}")
 
-    return references
+    return clean_references
 
-## Test Wikipedia Tool
-# query = "Quantum Computing"
+#
+# query = "Indigenous Peoples and Societies of Americas"
 # response = wikipedia_with_clickable_link(query)
 #
-# print(response)
-
+# # Print the URLs (references) returned
+# for ref in response:
+#     print(ref)
 
 # --------------------------------------------------------------
 ### Initialize Arxiv API Wrapper for Document Retrieval
