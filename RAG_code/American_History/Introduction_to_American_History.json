@@ -2,7 +2,7 @@
   "lesson": {
     "title": "Introduction to American History",
     "overview": "This lesson provides a foundational understanding of American history, exploring its key themes, events, and figures that have shaped the United States from pre-colonial times to the present. We will set the stage for our deeper study of subsequent periods in American history.",
-    "previous_summary": "No previous lesson context available.",
+    "previous_summary": "In previous lessons, we explored the context and significance of early human societies, which sets the stage for understanding the rich and complex tapestry of American history. This lesson will build on that foundation by diving into American historical themes, significant events, and influential figures.",
     "content": {
       "Key Themes": [
         "Cultural Diversity",
@@ -12,11 +12,11 @@
         "Political Evolution"
       ],
       "Important Events": [
-        "Pre-Columbian Era",
-        "European Contact",
-        "Colonial Establishment",
-        "Key Wars and Conflicts",
-        "Major Social Movements"
+        "Pre-Columbian Era: Indigenous peoples and their cultures.",
+        "1492: Christopher Columbus reaches the Americas.",
+        "1607: First permanent English settlement in Jamestown.",
+        "1776: Declaration of Independence signed.",
+        "1787: U.S. Constitution drafted."
       ],
       "Notable Figures": [
         "Christopher Columbus",
@@ -33,23 +33,41 @@
         "1787": "U.S. Constitution drafted."
       }
     },
-    "quizzes": {
-      "question": "What significant event occurred in 1776?",
-      "options": [
-        "Abraham Lincoln was elected President",
-        "The Declaration of Independence was signed",
-        "The Constitution was written",
-        "The American Civil War began"
-      ],
-      "answer": "The Declaration of Independence was signed"
-    },
-    "flashcards": {
-      "term": "Colonization",
-      "definition": "The action or process of settling among and establishing control over the indigenous people of an area."
-    },
+    "quizzes": [
+      {
+        "question": "Who reached the Americas in 1492?",
+        "options": [
+          "George Washington",
+          "Christopher Columbus",
+          "Abraham Lincoln",
+          "Frederick Douglass"
+        ],
+        "answer": "Christopher Columbus"
+      },
+      {
+        "question": "What year was the Declaration of Independence signed?",
+        "options": [
+          "1607",
+          "1492",
+          "1776",
+          "1787"
+        ],
+        "answer": "1776"
+      }
+    ],
+    "flashcards": [
+      {
+        "term": "Cultural Diversity",
+        "definition": "The variety of cultural or ethnic groups within a society."
+      },
+      {
+        "term": "U.S. Constitution",
+        "definition": "The supreme law of the United States, drafted in 1787."
+      }
+    ],
     "graphs": {
-      "title": "Timeline of Major Events in Early American History",
-      "code": "<script> import { Timeline } from 'svelte-layer-cake'; export let data = [ { year: 1492, event: 'Columbus arrives in the Americas' }, { year: 1607, event: 'Jamestown is established' }, { year: 1776, event: 'Declaration of Independence signed' }, { year: 1787, event: 'U.S. Constitution drafted' } ]; </script><Timeline {data}/>"
+      "title": "Timeline of Key Events in American History",
+      "code": "import { LayerCake } from 'svelte-layer-cake';\n\n<LayerCake>\n  <Event label='Pre-Columbian Era' date='Pre-1492'/>\n  <Event label='1492: Columbus' date='1492'/>\n  <Event label='1607: Jamestown' date='1607'/>\n  <Event label='1776: Declaration' date='1776'/>\n  <Event label='1787: Constitution' date='1787'/>\n</LayerCake>"
     },
     "takeaways": [
       "American history is complex, shaped by diverse cultures and events.",
@@ -59,10 +77,6 @@
     ]
   },
   "references": [
-    {
-      "reference": {
-        "reference": "No references available."
-      }
-    }
+    "Error in retrieval."
   ]
 }

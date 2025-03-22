@@ -111,12 +111,12 @@ def wikipedia_with_clickable_link(query):
     return clean_references
 
 
-query = "Indigenous Peoples and Societies of Americas"
-response = wikipedia_with_clickable_link(query)
-
-# Print the URLs (references) returned
-for ref in response:
-    print(ref)
+# query = "Indigenous Peoples and Societies of Americas"
+# response = wikipedia_with_clickable_link(query)
+#
+# # Print the URLs (references) returned
+# for ref in response:
+#     print(ref)
 
 # ## Test Wikipedia Tool
 # query = "Quantum Computing"
@@ -130,63 +130,63 @@ for ref in response:
 #---------------------------------------------------------------
 
 
-class ArxivRetriever:
-    def __init__(self, top_k_results=3):
-        self.top_k_results = top_k_results
-        self.api_url = "http://export.arxiv.org/api/query"
-
-    def search(self, query):
-        params = {
-            'search_query': f'all:{query}',  # Search for the query in all fields
-            'start': 0,
-            'max_results': self.top_k_results,
-            'sortBy': 'relevance',
-            'sortOrder': 'descending'
-        }
-
-        # Send a request to ArXiv's API to search for articles
-        response = requests.get(self.api_url, params=params)
-
-        if response.status_code == 200:
-            # Parse the XML response from ArXiv API
-            entries = response.text.split('<entry>')
-            references = []
-
-            # Extract the title and create URLs for the top results
-            for entry in entries[1:]:  # The first split is empty, so we skip it
-                # Extract the title of the article
-                title_start = entry.find('<title>') + len('<title>')
-                title_end = entry.find('</title>')
-                title = entry[title_start:title_end].strip()
-
-                # Generate the ArXiv URL using the article ID
-                id_start = entry.find('<id>') + len('<id>')
-                id_end = entry.find('</id>')
-                article_id = entry[id_start:id_end].strip()
-                article_url = article_id
-
-                # Append the URL to the references list
-                references.append(article_url)
-
-            return references
-        else:
-            return []
-
-
-# Testing the ArXiv Search API Approach
-def arxiv_with_clickable_link(query):
-    retriever = ArxivRetriever(top_k_results=5)
-    references = retriever.search(query)
-
-    return references
-
-
-query = "Quantum Computing"
-response = arxiv_with_clickable_link(query)
-
-# Print the URLs (references) returned
-for ref in response:
-    print(ref)
+# class ArxivRetriever:
+#     def __init__(self, top_k_results=3):
+#         self.top_k_results = top_k_results
+#         self.api_url = "http://export.arxiv.org/api/query"
+#
+#     def search(self, query):
+#         params = {
+#             'search_query': f'all:{query}',  # Search for the query in all fields
+#             'start': 0,
+#             'max_results': self.top_k_results,
+#             'sortBy': 'relevance',
+#             'sortOrder': 'descending'
+#         }
+#
+#         # Send a request to ArXiv's API to search for articles
+#         response = requests.get(self.api_url, params=params)
+#
+#         if response.status_code == 200:
+#             # Parse the XML response from ArXiv API
+#             entries = response.text.split('<entry>')
+#             references = []
+#
+#             # Extract the title and create URLs for the top results
+#             for entry in entries[1:]:  # The first split is empty, so we skip it
+#                 # Extract the title of the article
+#                 title_start = entry.find('<title>') + len('<title>')
+#                 title_end = entry.find('</title>')
+#                 title = entry[title_start:title_end].strip()
+#
+#                 # Generate the ArXiv URL using the article ID
+#                 id_start = entry.find('<id>') + len('<id>')
+#                 id_end = entry.find('</id>')
+#                 article_id = entry[id_start:id_end].strip()
+#                 article_url = article_id
+#
+#                 # Append the URL to the references list
+#                 references.append(article_url)
+#
+#             return references
+#         else:
+#             return []
+#
+#
+# # Testing the ArXiv Search API Approach
+# def arxiv_with_clickable_link(query):
+#     retriever = ArxivRetriever(top_k_results=5)
+#     references = retriever.search(query)
+#
+#     return references
+#
+#
+# query = "Quantum Computing"
+# response = arxiv_with_clickable_link(query)
+#
+# # Print the URLs (references) returned
+# for ref in response:
+#     print(ref)
 
 # --------------------------------------------------------------
 ### Initialize Google Scholar API Wrapper for Document Retrieval
@@ -228,46 +228,48 @@ for ref in response:
 # # Print raw response (just in case you want to check the text)
 # print(response)
 
-from scholarly import scholarly
+################ Newest Google Scholar API Wrapper
 
-
-class GoogleScholarRetriever:
-    def __init__(self, top_k_results=3):
-        self.top_k_results = top_k_results
-
-    def search(self, query):
-        # Search Google Scholar for articles matching the query
-        search_results = scholarly.search_pubs(query)
-
-        references = []
-
-        # Loop through search results and collect the top-k article URLs
-        for i, result in enumerate(search_results):
-            if i >= self.top_k_results:
-                break
-            # Extract the URL from the search result
-            title = result['bib']['title']
-            url = result[
-                'url'] if 'url' in result else f"https://scholar.google.com/scholar?q={title.replace(' ', '+')}"
-            references.append(url)
-
-        return references
-
-
-# Testing the Google Scholar Search API Approach
-def google_scholar_with_clickable_link(query):
-    retriever = GoogleScholarRetriever(top_k_results=5)
-    references = retriever.search(query)
-
-    return references
-
-
-query = "Quantum Computing"
-response = google_scholar_with_clickable_link(query)
-
-# Print the URLs (references) returned
-for ref in response:
-    print(ref)
+# from scholarly import scholarly
+#
+#
+# class GoogleScholarRetriever:
+#     def __init__(self, top_k_results=3):
+#         self.top_k_results = top_k_results
+#
+#     def search(self, query):
+#         # Search Google Scholar for articles matching the query
+#         search_results = scholarly.search_pubs(query)
+#
+#         references = []
+#
+#         # Loop through search results and collect the top-k article URLs
+#         for i, result in enumerate(search_results):
+#             if i >= self.top_k_results:
+#                 break
+#             # Extract the URL from the search result
+#             title = result['bib']['title']
+#             url = result[
+#                 'url'] if 'url' in result else f"https://scholar.google.com/scholar?q={title.replace(' ', '+')}"
+#             references.append(url)
+#
+#         return references
+#
+#
+# # Testing the Google Scholar Search API Approach
+# def google_scholar_with_clickable_link(query):
+#     retriever = GoogleScholarRetriever(top_k_results=5)
+#     references = retriever.search(query)
+#
+#     return references
+#
+#
+# query = "Quantum Computing"
+# response = google_scholar_with_clickable_link(query)
+#
+# # Print the URLs (references) returned
+# for ref in response:
+#     print(ref)
 
 # --------------------------------------------------------------
 ### Initialize PubMed
@@ -390,23 +392,23 @@ def retrieve_pubmed_articles(query):
 # --------------------------------------------------------------
 
 
-# # Wikipedia Tool
-# wikipedia_tool = Tool(
-#     name="Wikipedia_Search",  # ✅ Name must be valid for Gemini API
-#     func=wikipedia_with_clickable_link,  # Calls the function we modified
-#     description="Search for Wikipedia articles on a given topic. Returns both content and source URL."
-# )
-#
-# # PubMed Tool
-# pubmed_tool = Tool(
-#     name="PubMed_Search",
-#     func=retrieve_pubmed_articles,  # Using the PubMed retrieval function
-#     description="Search for academic research papers from PubMed based on a given query. Use this tool for medical and scientific topics."
-# )
-#
-#
-# tools = [wikipedia_tool, pubmed_tool]
-#
+# Wikipedia Tool
+wikipedia_tool = Tool(
+    name="Wikipedia_Search",  # ✅ Name must be valid for Gemini API
+    func=wikipedia_with_clickable_link,  # Calls the function we modified
+    description="Search for Wikipedia articles on a given topic. Returns both content and source URL."
+)
+
+# PubMed Tool
+pubmed_tool = Tool(
+    name="PubMed_Search",
+    func=retrieve_pubmed_articles,  # Using the PubMed retrieval function
+    description="Search for academic research papers from PubMed based on a given query. Use this tool for medical and scientific topics."
+)
+
+
+tools = [wikipedia_tool, pubmed_tool]
+
 
 
 
