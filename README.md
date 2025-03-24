@@ -43,7 +43,7 @@ The **AI-Powered Personal Tutor** is an interactive learning platform designed t
    git clone https://gitlab.com/your-username/ai-personal-tutor.git
    cd ai-personal-tutor
 2. **Install Dependencies**:
-    # Backend (Flask)
+    # Backend (Python)
         pip install -r requirements.txt
     # Frontend (React)
         cd frontend
