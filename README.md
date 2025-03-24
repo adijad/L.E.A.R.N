@@ -53,10 +53,7 @@ The **AI-Powered Personal Tutor** is an interactive learning platform designed t
         OPENAI_API_KEY=your_openai_key
         GOOGLE_TRANSLATE_API_KEY=your_google_key
         DATABASE_URL=postgresql://user:password@localhost:5432/tutor_db
-4. **Intitialize the database**:
-    # DB command
-        flask db upgrade
-5. **Run the Application**:
+4. **Run the Application**:
     # Start the backend server using Java Spring Boot:
         mvn spring-boot:run
     # Start frontend
