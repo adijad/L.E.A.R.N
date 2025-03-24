@@ -56,9 +56,9 @@ The **AI-Powered Personal Tutor** is an interactive learning platform designed t
 4. **Intitialize the database**:
     # DB command
         flask db upgrade
-5. **Run the Application*:
-    # Start backend
-        flask run
+5. **Run the Application**:
+    # Start the backend server using Java Spring Boot:
+        mvn spring-boot:run
     # Start frontend
         cd frontend
         npm start
