@@ -182,12 +182,13 @@ def load_previous_lessons(topic):
 
 def save_lesson(topic, lesson_name, lesson_data):
     """Saves the lesson as a JSON file in a topic-named folder."""
-    folder = topic.replace(" ", "_")
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+    base_folder = os.path.join("lessons", topic.replace(" ", "_"))
+    os.makedirs(base_folder, exist_ok=True)  # ✅ Ensure full path is created
+
     filename = lesson_name.replace(" ", "_") + ".json"
-    filepath = os.path.join(folder, filename)
-    with open(filepath, "w") as f:
+    filepath = os.path.join(base_folder, filename)
+
+    with open(filepath, "w", encoding="utf-8") as f:
         json.dump(lesson_data, f, indent=2)
     print(f" Lesson saved to {filepath}")
 
@@ -200,7 +201,7 @@ def save_lesson(topic, lesson_name, lesson_data):
 # ------------------------------
 
 @app.post("/get_toc")
-async def get_lesson_plan(request: TopicRequest):
+async def get_lesson_plan(request: TopicRequest, ):
     """Generates a Table of Contents for the given topic."""
     response = client.chat.completions.create(
         model="gpt-4o-mini",
