@@ -25,6 +25,8 @@ const AuthDialog = ({ setIsAuthenticated }) => {
         axios.post(`http://localhost:8080${endpoint}`, payload)
             .then(response => {
                 console.log(`${isLogin ? 'Login' : 'Registration'} successful:`, response.data);
+                localStorage.setItem("userEmail", email); // store email for tracking
+                console.log(localStorage.getItem("userEmail"));
                 setIsAuthenticated(true); // Set user as authenticated
             })
             .catch(error => {

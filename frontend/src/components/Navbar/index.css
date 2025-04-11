@@ -1,30 +1,136 @@
-.fixed-navbar {
-  background-color: #0096ff;
-  color: white;
-  width: 200px; /* Fixed width for the navbar */
-  height: 100vh; /* Full height of the viewport */
-  font-size: 20px;
-  position: fixed; /* Make the navbar fixed */
-  top: 0; /* Stick to the top */
-  left: 0; /* Stick to the left */
-  z-index: 1000; /* Ensure it's above all other content */
-  overflow-y: auto; /* Allow scrolling inside the navbar if necessary */
-  padding-top: 20px; /* Optional: adds padding on top */
+/* Modern Vertical Navbar Styles */
+.modern-vertical-navbar {
+  background-color: #2c3e50; /* Darker background */
+  color: #ecf0f1; /* Light text */
+  width: 220px; /* Slightly wider */
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  padding-top: 30px; /* More top padding */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Align items to the left */
+}
+
+.navbar-brand-container {
+  padding: 20px;
+  border-bottom: 1px solid #34495e; /* Subtle divider */
+  width: 100%;
+  text-align: left; /* Align brand text to the left */
+}
+
+.navbar-brand-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* Navbar User Info Styles - Moved and Font Smaller */
+.navbar-user-info {
+  padding: 10px 20px; /* Reduced top/bottom padding */
+  border-bottom: 1px solid #34495e; /* Subtle divider */
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-user-info .user-icon {
+  margin-right: 10px;
+  font-size: 1rem; /* Slightly smaller icon */
+  color: #fff; /* Or any color you prefer */
+}
+
+.navbar-user-info .user-email {
+  font-size: 0.8rem; /* Smaller font size */
+  color: #ddd; /* Slightly lighter color */
+  overflow: hidden; /* Prevent long emails from breaking layout */
+  text-overflow: ellipsis; /* Add ellipsis for overflow */
+  white-space: nowrap; /* Prevent wrapping */
+}
+
+.navbar-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
 }
 
 .navbar-nav .nav-item {
-  padding: 15px 30px; /* Spacing between items */
+  padding: 12px 20px; /* Adjusted padding */
+  margin-bottom: 5px; /* Slight margin between items */
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
 }
 
 .navbar-nav .nav-item:hover {
-  background-color: white;
-  border-radius: 8px;
+  background-color: #34495e; /* Slightly lighter on hover */
 }
 
-.navbar-nav .nav-item:hover a {
-  color: #0096ff;
+.navbar-nav .nav-item.active {
+  background-color: #007bff; /* Highlight for active item */
+  color: #fff;
+  font-weight: bold;
+}
+
+.navbar-nav .nav-item.active:hover {
+  background-color: #007bff; /* Keep active color on hover */
+}
+
+.navbar-nav .nav-item.active a {
+  color: #fff;
 }
 
 .navbar-nav .nav-item a {
-  color: white;
+  display: flex;
+  align-items: center;
+  color: #ecf0f1;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+.nav-icon {
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+.nav-label {
+  flex-grow: 1; /* Allow label to take remaining space */
+}
+
+/* Navbar Sign Out Button Styles */
+.navbar-signout {
+  padding: 15px 20px;
+  border-top: 1px solid #34495e;
+  width: 100%;
+  margin-top: auto; /* Push to the bottom */
+}
+
+.navbar-signout button {
+  background: none;
+  color: #ecf0f1;
+  border: none;
+  padding: 10px 0;
+  font-size: 1rem;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.3s ease;
+}
+
+.navbar-signout button:hover {
+  background-color: #34495e;
+}
+
+.navbar-signout .nav-icon {
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+.navbar-signout .nav-label {
+  flex-grow: 1;
 }

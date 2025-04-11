@@ -1,148 +1,248 @@
-/* General Styles */
+/* General Styles (Keep these) */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Arial", sans-serif;
+  font-family: "Segoe UI", sans-serif; /* More modern font */
 }
 
 body {
-  background-color: white;
+  background-color: #f4f6f8; /* Light grey background */
   background-size: cover;
   display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
   padding: 0;
   margin: 0;
 }
 
-/* Navbar Styles */
+/* Navbar Styles (Keep these) */
 nav {
   position: fixed;
   top: 0;
   left: 0;
-  width: 200px; /* Adjust according to your navbar width */
+  width: 220px; /* Consistent with your dashboard */
   height: 100vh;
-  background-color: #0096ff;
-  color: white;
-  z-index: 1000; /* Ensure navbar stays on top */
-  padding-top: 20px;
-}
-
-/* Topic Search Container */
-.container {
+  background-color: #2c3e50; /* Darker, sophisticated color */
+  color: #ecf0f1;
+  z-index: 1000;
+  padding-top: 30px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 500px;
-  padding: 30px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
-  margin-left: 220px; /* Adjust according to your navbar width */
+  align-items: flex-start;
 }
 
-/* Heading */
-h1 {
-  font-size: 28px;
+.navbar-brand-container {
+  padding: 20px;
+  border-bottom: 1px solid #34495e;
+  width: 100%;
+  text-align: left;
+}
+
+.navbar-brand-text {
+  font-size: 1.5rem;
   font-weight: bold;
-  margin-bottom: 15px;
-  text-align: center;
-  color: #2c3e50;
+  color: #fff;
 }
 
-/* Input Box */
-.input-box {
+.navbar-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
   width: 100%;
-  max-width: 600px; /* Increased width */
-  padding: 15px;
-  border: 2px solid #3498db;
-  border-radius: 8px;
-  font-size: 18px; /* Increased font size */
-  outline: none;
-  transition: border 0.3s ease-in-out;
-  box-sizing: border-box; /* Ensure padding is included in the width calculation */
 }
 
-.input-box:focus {
-  border: 2px solid #1abc9c;
+.navbar-nav .nav-item {
+  padding: 12px 20px;
+  margin-bottom: 5px;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.navbar-nav .nav-item:hover {
+  background-color: #34495e;
+}
+
+.navbar-nav .nav-item.active {
+  background-color: #007bff;
+  color: #fff;
+  font-weight: bold;
+}
+
+.navbar-nav .nav-item.active:hover {
+  background-color: #007bff;
+}
+
+.navbar-nav .nav-item.active a {
+  color: #fff;
+}
+
+.navbar-nav .nav-item a {
+  display: flex;
+  align-items: center;
+  color: #ecf0f1;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+.nav-icon {
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+.nav-label {
+  flex-grow: 1;
+}
+
+/* Topic Search Container (Card Style & Centering) */
+.topic-search-container {
+  font-family: "Segoe UI", sans-serif;
+  background-color: #f4f6f8;
+  padding: 30px;
+  margin-left: 220px; /* Adjust according to your navbar width */
+  transition: margin-left 0.3s ease;
+  display: flex;
+  justify-content: center; /* Center vertically */
+  align-items: center; /* Center horizontally */
+  min-height: calc(100vh - 0px); /* Ensure full viewport height */
+  padding-right: 30px; /* Consistent right padding */
+}
+
+.topic-search-card {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 40px;
+  text-align: center;
+  width: 100%;
+  max-width: 500px; /* Adjust card width as needed */
+}
+
+.topic-search-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.topic-search-header h1 {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.topic-search-header p.topic-search-subtitle {
+  color: #777;
+  font-size: 1.1rem;
+}
+
+/* Topic Search Input Group */
+.topic-input-group { /* Renamed for clarity */
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+  width: 100%;
+}
+
+.topic-search-input {
+  flex-grow: 1;
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.topic-search-input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.25);
 }
 
 /* Search Button */
-.button {
-  background: #3498db;
+.topic-search-button {
+  background-color: #007bff;
   color: white;
-  padding: 12px 20px;
-  font-size: 16px;
   border: none;
+  padding: 15px 20px;
   border-radius: 8px;
-  margin-top: 15px;
+  font-size: 1.1rem;
   cursor: pointer;
-  transition: background 0.3s ease-in-out;
+  transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center; /* Center text in button */
 }
 
-.button:hover {
-  background: #2980b9;
+.topic-search-button:hover {
+  background-color: #0056b3;
+}
+
+.topic-search-icon {
+  font-size: 1.2rem;
 }
 
 /* Table of Contents Container */
 .toc-box {
-  width: 100%;
-  max-width: 700px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 25px;
   margin-top: 20px;
-  padding: 20px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  text-align: center;
+  width: 100%; /* Take full available width */
+  max-width: 700px; /* Limit width of TOC if needed */
 }
 
-/* TOC Table */
+/* TOC Table (Keep these, adjust if needed) */
 .toc-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
+  margin-top: 15px;
 }
 
 .toc-table th,
 .toc-table td {
   padding: 12px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #eee;
   text-align: left;
 }
 
 .toc-table th {
-  background-color: #ecf0f1;
-  font-weight: bold;
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #333;
 }
 
 .toc-table tr:hover {
-  background-color: #f9f9f9;
+  background-color: #f5f5f5;
 }
 
-/* Lesson Styling */
 .active-lesson {
   font-weight: bold;
   cursor: pointer;
-  color: #27ae60;
+  color: #28a745; /* Green for active */
 }
 
 .disabled-lesson {
-  color: #bdc3c7;
+  color: #6c757d; /* Grey for disabled */
   pointer-events: none;
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
-/* Responsive Design */
+/* Responsive Design (Adjust if needed) */
 @media (max-width: 768px) {
-  .container {
-    width: 90%;
+  .topic-search-container {
+    padding-left: 15px;
+    padding-right: 15px;
+    margin-left: 0;
+    justify-content: flex-start; /* Revert to top alignment on smaller screens if needed */
+    align-items: stretch; /* Revert to stretch alignment on smaller screens if needed */
   }
-  .input-box {
+  .topic-search-card {
+    padding: 30px;
+  }
+  .topic-input-group {
+    flex-direction: column;
+  }
+  .topic-search-button {
     width: 100%;
   }
 }
