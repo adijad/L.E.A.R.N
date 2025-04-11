@@ -40,10 +40,13 @@ from openai import OpenAI
 from fastapi.middleware.cors import CORSMiddleware
 
 
+load_dotenv()
 # Initialize OpenAI client
-client = OpenAI(
-    api_key="REMOVED_OPENAI_API_KEY"
-)
+api_key = os.getenv("OPENAI_API_KEY")
+
+# Initialize OpenAI client
+client = OpenAI(api_key=api_key)
+
 
 # ✅ Add this before defining endpoints
 origins = [
@@ -84,7 +87,6 @@ class LessonRequest(BaseModel):
 # Step 1: Initialize LLM and Prompt
 # ------------------------------
 
-load_dotenv()
 llm = ChatGoogleGenerativeAI(model="gemini-2.0-pro-exp-02-05", temperature=0, max_tokens=700)
 updated_prompt = ChatPromptTemplate.from_messages([
     SystemMessagePromptTemplate.from_template(
