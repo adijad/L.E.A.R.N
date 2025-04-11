@@ -29,35 +29,47 @@ const TableOfContentsPage = ({ topic: propTopic }) => {
       }
 
       try {
-        const tocResponse = await axios.get("http://localhost:8080/api/auth/progress/getTOC", {
-          params: { email, topic: currentTopic }
-        });
+        let fetchedTOC = tocFromState;
+        let shouldFetchNewTOC = false;
 
-        if (tocResponse.data && Array.isArray(tocResponse.data.table_of_contents)) {
-          setTableOfContents(tocResponse.data.table_of_contents);
+        // Check if TOC is not in state (likely a new search)
+        if (!tocFromState) {
+          shouldFetchNewTOC = true;
+        }
 
-          // Fetch user's completed lessons for this topic
-          const completedResponse = await axios.get("http://localhost:8080/api/auth/progress/completedLessons", {
-            params: { email, topic: currentTopic }
-          });
+        if (shouldFetchNewTOC) {
+          const tocResponse = await axios.post("http://127.0.0.1:8000/get_toc", { topic: currentTopic });
 
-          if (completedResponse.data && Array.isArray(completedResponse.data)) {
-            setCompletedLessons(completedResponse.data);
-            // Determine the starting index
-            const firstUncompletedIndex = tocResponse.data.table_of_contents.findIndex(
-                (lesson) => !completedResponse.data.includes(lesson)
-            );
-            setStartIndex(firstUncompletedIndex === -1 ? 0 : firstUncompletedIndex);
+          if (tocResponse.data && Array.isArray(tocResponse.data.table_of_contents)) {
+            fetchedTOC = tocResponse.data.table_of_contents;
+            setTableOfContents(fetchedTOC);
 
-            // Save TOC for user (you might want to do this elsewhere or less frequently)
+            // Save TOC to the progress backend
             await axios.post("http://localhost:8080/api/auth/progress/saveTOC", {
               email,
               topic: currentTopic,
-              toc: tocResponse.data.table_of_contents,
+              toc: fetchedTOC,
             });
+          } else {
+            setErrorTOC("Invalid TOC response format from new TOC API.");
+            setLoadingTOC(false);
+            return;
           }
-        } else {
-          setErrorTOC("Invalid TOC response format.");
+        } else if (fetchedTOC) {
+          setTableOfContents(fetchedTOC);
+        }
+
+        // Fetch user's completed lessons for this topic
+        const completedResponse = await axios.get("http://localhost:8080/api/auth/progress/completedLessons", {
+          params: { email, topic: currentTopic }
+        });
+
+        if (completedResponse.data && Array.isArray(completedResponse.data)) {
+          setCompletedLessons(completedResponse.data);
+          const firstUncompletedIndex = (fetchedTOC || []).findIndex(
+              (lesson) => !completedResponse.data.includes(lesson)
+          );
+          setStartIndex(firstUncompletedIndex === -1 ? 0 : firstUncompletedIndex);
         }
       } catch (err) {
         console.error("Error fetching TOC or progress:", err);
@@ -67,32 +79,8 @@ const TableOfContentsPage = ({ topic: propTopic }) => {
       }
     };
 
-    // Prioritize TOC from state if available (for faster navigation from dashboard)
-    if (tocFromState && currentTopic) {
-      setTableOfContents(tocFromState);
-      // Still need to fetch completed lessons to determine start index
-      const fetchCompletedOnly = async () => {
-        try {
-          const completedResponse = await axios.get("http://localhost:8080/api/auth/progress/completedLessons", {
-            params: { email, topic: currentTopic }
-          });
-          if (completedResponse.data && Array.isArray(completedResponse.data)) {
-            setCompletedLessons(completedResponse.data);
-            const firstUncompletedIndex = tocFromState.findIndex(
-                (lesson) => !completedResponse.data.includes(lesson)
-            );
-            setStartIndex(firstUncompletedIndex === -1 ? 0 : firstUncompletedIndex);
-            setLoadingTOC(false);
-          } else {
-            setLoadingTOC(false);
-          }
-        } catch (error) {
-          console.error("Error fetching completed lessons:", error);
-          setLoadingTOC(false);
-        }
-      };
-      fetchCompletedOnly();
-    } else if (currentTopic && email) {
+    setLoadingTOC(true);
+    if (currentTopic && email) {
       fetchTOCAndProgress();
     } else {
       setErrorTOC("Topic or user email not provided.");
