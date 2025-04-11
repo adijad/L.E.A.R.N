@@ -1,38 +1,45 @@
 import React, { useState } from "react";
 import TableOfContentsPage from "../TableOfContentsPage"; // Import the TOC component
+import { FaSearch } from 'react-icons/fa'; // Import search icon
 import "./index.css";
 
 const TopicSearch = () => {
     const [topic, setTopic] = useState("");
-    const [showTOC, setShowTOC] = useState(false); // State to control showing the TOC
+    const [showTOC, setShowTOC] = useState(false);
 
-    const fetchTOC = async () => {
-        if (!topic.trim()) return alert("Please enter a topic!");
-
-        // Show the Table of Contents component when the button is clicked
+    const handleSearch = () => {
+        if (!topic.trim()) {
+            alert("Please enter a topic!");
+            return;
+        }
         setShowTOC(true);
     };
 
     return (
-        <div className="container">
-            <h1>Explore Topics</h1>
+        <div className="topic-search-container">
+            <div className="topic-search-card">
+                <div className="topic-search-header">
+                    <h1>Explore Topics</h1>
+                    <p className="topic-search-subtitle">Discover new learning paths and expand your knowledge.</p>
+                </div>
 
-            {/* Only show the search bar and button if showTOC is false */}
-            {!showTOC && (
-                <>
-                    <input
-                        type="text"
-                        className="input-box"
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        placeholder="Enter a topic..."
-                    />
-                    <button className="button" onClick={fetchTOC}>L.E.A.R.N</button>
-                </>
-            )}
+                {!showTOC && (
+                    <div className="topic-search-input-group">
+                        <input
+                            type="text"
+                            className="topic-search-input"
+                            value={topic}
+                            onChange={(e) => setTopic(e.target.value)}
+                            placeholder="Search for topics..."
+                        />
+                        <button className="topic-search-button" onClick={handleSearch}>
+                            L.E.A.R.N
+                        </button>
+                    </div>
+                )}
 
-            {/* Conditionally render the Table of Contents component */}
-            {showTOC && <TableOfContentsPage topic={topic} />}
+                {showTOC && <TableOfContentsPage topic={topic} />}
+            </div>
         </div>
     );
 };

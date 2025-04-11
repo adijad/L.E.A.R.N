@@ -164,12 +164,10 @@ const GraphRenderer = ({ graph }) => {
    2) RENDER CONTENT RECURSIVELY
 ----------------------------------------------- */
 const renderContent = (content) => {
-    // If content is a string or number, render it as a paragraph with bold content
     if (typeof content === "string" || typeof content === "number") {
         return <p className="font-bold text-gray-700">{content}</p>;
     }
 
-    // If content is an array, recursively render each item
     if (Array.isArray(content)) {
         return (
             <div className="pl-4">
@@ -182,12 +180,10 @@ const renderContent = (content) => {
         );
     }
 
-    // If content is an object, recursively handle its content
     if (typeof content === "object" && content !== null) {
         return Object.keys(content).map((key) => {
             const item = content[key];
 
-            // If the item contains both "heading" and "description", render them
             if (item.heading && item.description) {
                 return (
                     <div key={key} className="mb-6">
@@ -197,7 +193,6 @@ const renderContent = (content) => {
                 );
             }
 
-            // If the item is an array or object, recursively render its content
             if (typeof item === 'object' || Array.isArray(item)) {
                 return (
                     <div key={key} className="content-section mb-6">
@@ -206,7 +201,6 @@ const renderContent = (content) => {
                 );
             }
 
-            // Render the content (value) as bold inside the section
             return (
                 <div key={key} className="content-section mb-6">
                     <p className="font-bold text-gray-700">{item}</p>
@@ -217,11 +211,6 @@ const renderContent = (content) => {
 
     return null;
 };
-
-
-
-
-
 
 /* -----------------------------------------------
    3) INTERACTIVE COMPONENTS (actual logic)
@@ -247,18 +236,16 @@ const Timeline = ({ title = "Timeline", data = [] }) => {
 
 /* MEMORY MATCH */
 const MemoryMatch = ({ title = "Memory Match", pairs = [] }) => {
-    // Expand each pair into two cards
     const initialCards = React.useMemo(() => {
         const allCards = pairs.flatMap((p, idx) => [
             { id: `term-${idx}`, content: p.term, pairId: idx },
             { id: `def-${idx}`, content: p.definition, pairId: idx },
         ]);
-        // shuffle
         return allCards.sort(() => Math.random() - 0.5);
     }, [pairs]);
 
     const [cards, setCards] = useState(initialCards);
-    const [flipped, setFlipped] = useState([]); // indexes of flipped
+    const [flipped, setFlipped] = useState([]);
     const [matched, setMatched] = useState([]);
 
     const handleFlip = (i) => {
@@ -475,8 +462,7 @@ const SortList = ({ prompt = "Sort the items", items = [] }) => {
 };
 
 /* -----------------------------------------------
-   4) RENDER INTERACTIVE (NO QUIZ TYPE!)
-   Graceful error handling
+   4) RENDER INTERACTIVE
 ----------------------------------------------- */
 const InteractiveRenderer = ({ interactive }) => {
     if (!interactive || typeof interactive !== "object") return null;
@@ -510,17 +496,23 @@ const InteractiveRenderer = ({ interactive }) => {
 
 /* -----------------------------------------------
    5) MAIN LESSON PAGE
-   transform normal quiz => interactive logic
-   BUT handle array of quizzes if present
 ----------------------------------------------- */
 const LessonPage = () => {
     const { state } = useLocation();
-    const { topic, lesson_name, toc } = state || {};
+    const { topic, lesson_name, toc, email: stateEmail  } = state || {};
+    const email = stateEmail || localStorage.getItem("userEmail");
     const [references, setReferences] = useState([]);
     const [lesson, setLesson] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+
+    const [lessonName, setLessonName] = useState(lesson_name); // Initialize with prop
+
+    // New state variables for adaptability
+    const [showScorePopup, setShowScorePopup] = useState(false);
+    const [quizScore, setQuizScore] = useState(0);
+    const [nextDifficulty, setNextDifficulty] = useState('');
 
     useEffect(() => {
         const fetchLesson = async () => {
@@ -528,23 +520,31 @@ const LessonPage = () => {
                 setLoading(true);
                 const response = await axios.post(
                     "http://127.0.0.1:8000/generate_lesson",
-                    {
-                        topic,
-                        lesson_name,
-                        toc,
-                    }
+                    { topic, lesson_name, toc }
                 );
-                const lessonData = response.data.lesson.lesson
-                    ? response.data.lesson.lesson
-                    : response.data.lesson;
-
+                const lessonData = response.data.lesson.lesson || response.data.lesson;
                 const referencesData = response.data.lesson.references || [];
                 setLesson(lessonData);
                 setReferences(referencesData);
-                console.log("Full Lesson:", lessonData);
-                console.log("Full Lesson:", referencesData);
                 const index = toc.findIndex((item) => item === lesson_name);
                 setCurrentLessonIndex(index);
+                console.log("Saving progress", {
+                    email,
+                    topic,
+                    lessonName: lesson_name,               // ✅ Use the variable from state
+                    tocIndex: currentLessonIndex,          // ✅ Already in use
+                    completed: false                        // ✅ or false, depending on your logic
+                });
+
+
+                await axios.post("http://localhost:8080/api/auth/progress/save", {
+                    email,
+                    topic,
+                    lessonName: lesson_name,
+                    tocIndex: index,
+                    completed: false,
+                    lessonJson: JSON.stringify(lessonData),
+                });
             } catch (err) {
                 console.error(err);
                 setError("Failed to load lesson.");
@@ -553,49 +553,129 @@ const LessonPage = () => {
             }
         };
 
-        if (topic && lesson_name && toc) {
-            fetchLesson();
-        }
+
+        if (topic && lesson_name && toc) fetchLesson();
     }, [topic, lesson_name, toc]);
 
     const isLocked = (index) => index > currentLessonIndex;
 
-    // We'll store selected answers & feedback for each quiz item
     const [selectedAnswers, setSelectedAnswers] = useState({});
     const [quizFeedbacks, setQuizFeedbacks] = useState({});
 
-    // called when user clicks an option for a certain quizIndex
     const handleQuizOptionClick = (quizIndex, option) => {
         if (!lesson.quizzes) return;
 
-        // If it's an array, do array logic
         if (Array.isArray(lesson.quizzes)) {
             const correctAnswer = lesson.quizzes[quizIndex]?.answer;
-            if (!correctAnswer) return; // avoid undefined
+            if (!correctAnswer) return;
             setSelectedAnswers((prev) => ({ ...prev, [quizIndex]: option }));
-            if (option === correctAnswer) {
-                setQuizFeedbacks((prev) => ({ ...prev, [quizIndex]: "✅ Correct!" }));
-            } else {
-                setQuizFeedbacks((prev) => ({ ...prev, [quizIndex]: "❌ Incorrect, try again!" }));
-            }
+            setQuizFeedbacks((prev) => ({
+                ...prev,
+                [quizIndex]: option === correctAnswer ? "✅ Correct!" : "❌ Incorrect, try again!"
+            }));
         } else {
-            // Single quiz object fallback
             const correctAnswer = lesson.quizzes.answer;
             setSelectedAnswers((prev) => ({ ...prev, 0: option }));
-            if (option === correctAnswer) {
-                setQuizFeedbacks((prev) => ({ ...prev, 0: "✅ Correct!" }));
-            } else {
-                setQuizFeedbacks((prev) => ({ ...prev, 0: "❌ Incorrect, try again!" }));
-            }
+            setQuizFeedbacks((prev) => ({
+                ...prev,
+                0: option === correctAnswer ? "✅ Correct!" : "❌ Incorrect, try again!"
+            }));
         }
     };
+
+    // New function to handle next lesson loading
+    const handleNextLesson = async () => {
+        const nextLessonName = toc[currentLessonIndex + 1];
+        try {
+            setLoading(true);
+            const response = await axios.post("http://127.0.0.1:8000/generate_lesson", {
+                topic,
+                lesson_name: nextLessonName,
+                toc
+            });
+            const lessonData = response.data.lesson.lesson || response.data.lesson;
+
+            await axios.post("http://localhost:8080/api/auth/progress/save", {
+                email,
+                topic,
+                lessonName: nextLessonName,
+                tocIndex: currentLessonIndex + 1,
+                completed: false,
+                lessonJson: JSON.stringify(response.data),
+            });
+
+            setLesson(lessonData);
+            setCurrentLessonIndex(prev => prev + 1);
+            setSelectedAnswers({});
+            setQuizFeedbacks({});
+            setLessonName(nextLessonName);
+        } catch (err) {
+            console.error("Failed to load next lesson:", err);
+            setError("Failed to load next lesson.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Calculate score and show popup
+    const calculateScoreAndShowPopup = async () => {
+        if (!lesson?.quizzes) {
+            await handleNextLesson();
+            return;
+        }
+
+        let correct = 0;
+        const quizzes = Array.isArray(lesson.quizzes) ? lesson.quizzes : [lesson.quizzes];
+        const total = quizzes.length;
+
+        quizzes.forEach((quiz, index) => {
+            if (selectedAnswers[index] === quiz.answer) correct++;
+        });
+
+        const score = total > 0 ? (correct / total) * 100 : 0;
+
+        if (score > 0) {
+            // Only save if score > 0
+            console.log("Saving lesson progress:", {
+                email,
+                topic,
+                lessonName: lessonName,
+                tocIndex: currentLessonIndex,
+                completed: true,
+                lessonJson: JSON.stringify(lesson),
+            });
+
+            await axios.post("http://localhost:8080/api/auth/progress/save", {
+                email,
+                topic,
+                lessonName: lessonName,
+                tocIndex: currentLessonIndex,
+                completed: true,
+                lessonJson: JSON.stringify(lesson),
+            });
+        }
+
+        if (score === 0) {
+            setShowScorePopup(false);
+            setSelectedAnswers({});
+            setQuizFeedbacks({});
+            return;
+        }
+
+        setQuizScore(score);
+        setNextDifficulty(
+            score < 50 ? 'Easy' :
+                score <= 80 ? 'Medium' : 'Hard'
+        );
+        setShowScorePopup(true);
+    };
+
 
     if (loading) return <p>Loading lesson...</p>;
     if (error) return <p className="error">{error}</p>;
 
     return (
         <div className="lesson-layout">
-            {/* Floating ToC */}
             <aside className="lesson-sidebar">
                 <h3>Table of Contents</h3>
                 <ul className="lesson-toc">
@@ -616,14 +696,12 @@ const LessonPage = () => {
                 </ul>
             </aside>
 
-            {/* Lesson Content */}
             <div className="lesson-container">
                 <h1 className="lesson-title">{lesson?.title}</h1>
                 <h2>Overview</h2>
                 <p className="lesson-overview">{lesson?.overview}</p>
 
                 <div className={isLocked(currentLessonIndex) ? "locked-section" : ""}>
-                    {/* previous_summary */}
                     {lesson?.previous_summary && (
                         <div className="lesson-summary">
                             <h3>Previous Summary</h3>
@@ -635,7 +713,6 @@ const LessonPage = () => {
                         </div>
                     )}
 
-                    {/* content */}
                     {lesson?.content && (
                         <div className="lesson-content">
                             <h3>Content</h3>
@@ -643,12 +720,9 @@ const LessonPage = () => {
                         </div>
                     )}
 
-                    {/* Our new "interactive" version of the normal quiz -- now for arrays too */}
                     {lesson?.quizzes && (
                         <div className="lesson-quizzes">
                             <h3>Quiz</h3>
-
-                            {/* If quizzes is an array, map each one. Otherwise fallback */}
                             {Array.isArray(lesson.quizzes) ? (
                                 lesson.quizzes.map((quiz, quizIndex) => (
                                     <div key={quizIndex} className="quiz-item">
@@ -672,7 +746,6 @@ const LessonPage = () => {
                                     </div>
                                 ))
                             ) : (
-                                // If it's a single quiz object
                                 <div className="quiz-item">
                                     <p className="quiz-question">{lesson.quizzes.question}</p>
                                     <ul className="quiz-options">
@@ -696,7 +769,6 @@ const LessonPage = () => {
                         </div>
                     )}
 
-                    {/* flashcards */}
                     {lesson?.flashcards && (
                         <div className="lesson-flashcards">
                             <h3>Flashcards</h3>
@@ -720,10 +792,8 @@ const LessonPage = () => {
                         </div>
                     )}
 
-                    {/* Graphs */}
                     {lesson?.graphs && <GraphRenderer graph={lesson.graphs} />}
 
-                    {/* Interactives */}
                     {lesson?.interactives && (
                         <div className="lesson-interactives">
                             <h3>Interactive Activities</h3>
@@ -733,7 +803,6 @@ const LessonPage = () => {
                         </div>
                     )}
 
-                    {/* Takeaways */}
                     {lesson?.takeaways && (
                         <div className="lesson-takeaways">
                             <h3>Takeaways</h3>
@@ -745,21 +814,21 @@ const LessonPage = () => {
                         </div>
                     )}
 
-                    {/* References Section */}
                     {references.length > 0 && (
                         <div className="lesson-references bg-gray-100 p-4 rounded-lg shadow-md">
                             <h3 className="text-xl font-bold mb-2 text-left">References</h3>
                             <div className="space-y-2">
-                                {references.map((ref, index) => {
-                                    // Extract only the URL starting from "https"
-                                    const cleanLink = ref.split('Source:')[1]?.trim().split(']')[0] || ref;
-
+                                {references.filter(ref => typeof ref === 'string').map((ref, index) => {
+                                    const parts = ref.split('Source:');
+                                    const cleanLink = parts.length > 1
+                                        ? parts[1].split(']')[0].trim()
+                                        : ref;
                                     return (
                                         <div key={index} className="flex items-center space-x-2 p-2 bg-white rounded-md shadow-sm">
                                             <img
                                                 src="https://upload.wikimedia.org/wikipedia/commons/6/63/Wikipedia-logo.png"
                                                 alt="Wikipedia"
-                                                className="w-2 h-2" // Even smaller size for the Wikipedia logo
+                                                className="w-2 h-2"
                                             />
                                             <a
                                                 href={cleanLink}
@@ -767,7 +836,7 @@ const LessonPage = () => {
                                                 rel="noopener noreferrer"
                                                 className="text-blue-600 font-semibold hover:underline"
                                             >
-                                                {cleanLink} {/* Only show the cleaned link */}
+                                                {cleanLink}
                                             </a>
                                         </div>
                                     );
@@ -776,45 +845,53 @@ const LessonPage = () => {
                         </div>
                     )}
 
-
-
-
-                    {/* Next Lesson */}
                     {currentLessonIndex < toc.length - 1 && (
                         <div className="lesson-navigation">
                             <button
                                 className="next-button"
-                                onClick={async () => {
-                                    const nextLessonName = toc[currentLessonIndex + 1];
-                                    try {
-                                        setLoading(true);
-                                        const response = await axios.post(
-                                            "http://127.0.0.1:8000/generate_lesson",
-                                            {
-                                                topic,
-                                                lesson_name: nextLessonName,
-                                                toc,
-                                            }
-                                        );
-                                        const lessonData = response.data.lesson.lesson
-                                            ? response.data.lesson.lesson
-                                            : response.data.lesson;
-                                        setLesson(lessonData);
-                                        setCurrentLessonIndex(currentLessonIndex + 1);
-                                    } catch (err) {
-                                        console.error("Failed to load next lesson:", err);
-                                        setError("Failed to load next lesson.");
-                                    } finally {
-                                        setLoading(false);
-                                    }
-                                }}
+                                onClick={calculateScoreAndShowPopup}
                             >
-                                Next Lesson →
+                                {Object.keys(selectedAnswers).length === 0 ?
+                                    "Skip to Next Lesson" :
+                                    "Check Score & Continue"
+                                }
                             </button>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Score Popup */}
+            {showScorePopup && (
+                <div className="score-popup-overlay">
+                    <div className="score-popup">
+                        <h3>Quiz Score: {quizScore.toFixed(0)}%</h3>
+                        <p>
+                            {quizScore === 100 ? (
+                                <>🎉 Perfect score! Great Going! The next lesson will be
+                                    generated at {' '}
+                                    <strong>{nextDifficulty}</strong> difficulty.</>
+                            ) : (
+                                <>👍 Good effort! You're getting there! The next lesson will
+                                    be generated at {' '}
+                                    <strong>{nextDifficulty}</strong> difficulty. Keep practicing!</>
+                            )}
+                        </p>
+                        <button
+                            className={`proceed-button ${
+                                quizScore === 100 ? 'success'
+                                    : 'warning'
+                            }`}
+                            onClick={() => {
+                                setShowScorePopup(false);
+                                handleNextLesson();
+                            }}
+                        >
+                            Proceed
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
