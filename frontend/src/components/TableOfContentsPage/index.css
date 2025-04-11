@@ -11,6 +11,13 @@
   margin-left: 240px;
 }
 
+.toc-language-selector {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .toc-card {
   background-color: #fff;
   border-radius: 8px;
