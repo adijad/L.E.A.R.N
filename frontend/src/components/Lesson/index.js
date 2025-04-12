@@ -497,22 +497,22 @@ const InteractiveRenderer = ({ interactive }) => {
 /* -----------------------------------------------
    5) MAIN LESSON PAGE
 ----------------------------------------------- */
+
 const LessonPage = () => {
     const { state } = useLocation();
-    const { topic, lesson_name, toc, email: stateEmail  } = state || {};
+    const { topic, lesson_name, toc, email: stateEmail } = state || {};
     const email = stateEmail || localStorage.getItem("userEmail");
     const [references, setReferences] = useState([]);
     const [lesson, setLesson] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
-
-    const [lessonName, setLessonName] = useState(lesson_name); // Initialize with prop
-
-    // New state variables for adaptability
+    const [lessonName, setLessonName] = useState(lesson_name);
     const [showScorePopup, setShowScorePopup] = useState(false);
     const [quizScore, setQuizScore] = useState(0);
     const [nextDifficulty, setNextDifficulty] = useState('');
+    const [selectedAnswers, setSelectedAnswers] = useState({});
+    const [quizFeedbacks, setQuizFeedbacks] = useState({});
 
     useEffect(() => {
         const fetchLesson = async () => {
@@ -522,20 +522,15 @@ const LessonPage = () => {
                     "http://127.0.0.1:8000/generate_lesson",
                     { topic, lesson_name, toc }
                 );
+
                 const lessonData = response.data.lesson.lesson || response.data.lesson;
                 const referencesData = response.data.lesson.references || [];
+
                 setLesson(lessonData);
                 setReferences(referencesData);
-                const index = toc.findIndex((item) => item === lesson_name);
-                setCurrentLessonIndex(index);
-                console.log("Saving progress", {
-                    email,
-                    topic,
-                    lessonName: lesson_name,               // ✅ Use the variable from state
-                    tocIndex: currentLessonIndex,          // ✅ Already in use
-                    completed: false                        // ✅ or false, depending on your logic
-                });
 
+                const index = toc.findIndex(item => item === lesson_name);
+                setCurrentLessonIndex(index);
 
                 await axios.post("http://localhost:8080/api/auth/progress/save", {
                     email,
@@ -545,6 +540,7 @@ const LessonPage = () => {
                     completed: false,
                     lessonJson: JSON.stringify(lessonData),
                 });
+
             } catch (err) {
                 console.error(err);
                 setError("Failed to load lesson.");
@@ -553,37 +549,58 @@ const LessonPage = () => {
             }
         };
 
-
         if (topic && lesson_name && toc) fetchLesson();
-    }, [topic, lesson_name, toc]);
-
-    const isLocked = (index) => index > currentLessonIndex;
-
-    const [selectedAnswers, setSelectedAnswers] = useState({});
-    const [quizFeedbacks, setQuizFeedbacks] = useState({});
+    }, [topic, lesson_name, toc, email]);
 
     const handleQuizOptionClick = (quizIndex, option) => {
-        if (!lesson.quizzes) return;
+        if (!lesson?.quizzes) return;
 
-        if (Array.isArray(lesson.quizzes)) {
-            const correctAnswer = lesson.quizzes[quizIndex]?.answer;
-            if (!correctAnswer) return;
-            setSelectedAnswers((prev) => ({ ...prev, [quizIndex]: option }));
-            setQuizFeedbacks((prev) => ({
-                ...prev,
-                [quizIndex]: option === correctAnswer ? "✅ Correct!" : "❌ Incorrect, try again!"
-            }));
-        } else {
-            const correctAnswer = lesson.quizzes.answer;
-            setSelectedAnswers((prev) => ({ ...prev, 0: option }));
-            setQuizFeedbacks((prev) => ({
-                ...prev,
-                0: option === correctAnswer ? "✅ Correct!" : "❌ Incorrect, try again!"
-            }));
-        }
+        const quizzes = Array.isArray(lesson.quizzes) ? lesson.quizzes : [lesson.quizzes];
+        const correctAnswer = quizzes[quizIndex]?.answer;
+
+        if (!correctAnswer) return;
+
+        setSelectedAnswers(prev => ({ ...prev, [quizIndex]: option }));
+        setQuizFeedbacks(prev => ({
+            ...prev,
+            [quizIndex]: option === correctAnswer ? "✅ Correct!" : "❌ Incorrect, try again!"
+        }));
     };
 
-    // New function to handle next lesson loading
+    const calculateScoreAndShowPopup = async () => {
+        if (!lesson?.quizzes) {
+            await handleNextLesson();
+            return;
+        }
+
+        const quizzes = Array.isArray(lesson.quizzes) ? lesson.quizzes : [lesson.quizzes];
+        let correct = 0;
+
+        quizzes.forEach((quiz, index) => {
+            if (selectedAnswers[index] === quiz.answer) correct++;
+        });
+
+        const score = (correct / quizzes.length) * 100;
+        setQuizScore(score);
+
+        if (score > 0) {
+            await axios.post("http://localhost:8080/api/auth/progress/save", {
+                email,
+                topic,
+                lessonName,
+                tocIndex: currentLessonIndex,
+                completed: true,
+                lessonJson: JSON.stringify(lesson),
+            });
+        }
+
+        setNextDifficulty(
+            score < 50 ? 'Easy' :
+                score <= 80 ? 'Medium' : 'Hard'
+        );
+        setShowScorePopup(score > 0);
+    };
+
     const handleNextLesson = async () => {
         const nextLessonName = toc[currentLessonIndex + 1];
         try {
@@ -593,22 +610,13 @@ const LessonPage = () => {
                 lesson_name: nextLessonName,
                 toc
             });
-            const lessonData = response.data.lesson.lesson || response.data.lesson;
 
-            await axios.post("http://localhost:8080/api/auth/progress/save", {
-                email,
-                topic,
-                lessonName: nextLessonName,
-                tocIndex: currentLessonIndex + 1,
-                completed: false,
-                lessonJson: JSON.stringify(response.data),
-            });
-
-            setLesson(lessonData);
+            setLesson(response.data.lesson.lesson || response.data.lesson);
             setCurrentLessonIndex(prev => prev + 1);
             setSelectedAnswers({});
             setQuizFeedbacks({});
             setLessonName(nextLessonName);
+
         } catch (err) {
             console.error("Failed to load next lesson:", err);
             setError("Failed to load next lesson.");
@@ -617,77 +625,21 @@ const LessonPage = () => {
         }
     };
 
-    // Calculate score and show popup
-    const calculateScoreAndShowPopup = async () => {
-        if (!lesson?.quizzes) {
-            await handleNextLesson();
-            return;
-        }
-
-        let correct = 0;
-        const quizzes = Array.isArray(lesson.quizzes) ? lesson.quizzes : [lesson.quizzes];
-        const total = quizzes.length;
-
-        quizzes.forEach((quiz, index) => {
-            if (selectedAnswers[index] === quiz.answer) correct++;
-        });
-
-        const score = total > 0 ? (correct / total) * 100 : 0;
-
-        if (score > 0) {
-            // Only save if score > 0
-            console.log("Saving lesson progress:", {
-                email,
-                topic,
-                lessonName: lessonName,
-                tocIndex: currentLessonIndex,
-                completed: true,
-                lessonJson: JSON.stringify(lesson),
-            });
-
-            await axios.post("http://localhost:8080/api/auth/progress/save", {
-                email,
-                topic,
-                lessonName: lessonName,
-                tocIndex: currentLessonIndex,
-                completed: true,
-                lessonJson: JSON.stringify(lesson),
-            });
-        }
-
-        if (score === 0) {
-            setShowScorePopup(false);
-            setSelectedAnswers({});
-            setQuizFeedbacks({});
-            return;
-        }
-
-        setQuizScore(score);
-        setNextDifficulty(
-            score < 50 ? 'Easy' :
-                score <= 80 ? 'Medium' : 'Hard'
-        );
-        setShowScorePopup(true);
-    };
-
-
-    if (loading) return <p>Loading lesson...</p>;
-    if (error) return <p className="error">{error}</p>;
+    if (loading) return <div className="lesson-loading">📚 Loading lesson...</div>;
+    if (error) return <div className="lesson-error">⚠️ {error}</div>;
 
     return (
         <div className="lesson-layout">
+            {/* Sidebar */}
             <aside className="lesson-sidebar">
-                <h3>Table of Contents</h3>
+                <h3>Course Progress</h3>
                 <ul className="lesson-toc">
-                    {toc.map((item, index) => (
+                    {toc?.map((item, index) => (
                         <li
                             key={index}
                             className={
-                                index < currentLessonIndex
-                                    ? "toc-visited"
-                                    : index === currentLessonIndex
-                                        ? "toc-current"
-                                        : "toc-locked"
+                                index < currentLessonIndex ? "toc-visited" :
+                                    index === currentLessonIndex ? "toc-current" : "toc-locked"
                             }
                         >
                             {item}
@@ -696,204 +648,199 @@ const LessonPage = () => {
                 </ul>
             </aside>
 
+            {/* Main Content */}
             <div className="lesson-container">
+                {/* Header */}
                 <h1 className="lesson-title">{lesson?.title}</h1>
-                <h2>Overview</h2>
-                <p className="lesson-overview">{lesson?.overview}</p>
 
-                <div className={isLocked(currentLessonIndex) ? "locked-section" : ""}>
-                    {lesson?.previous_summary && (
-                        <div className="lesson-summary">
-                            <h3>Previous Summary</h3>
-                            {typeof lesson.previous_summary === "object" ? (
-                                renderContent(lesson.previous_summary)
-                            ) : (
-                                <p>{lesson.previous_summary}</p>
-                            )}
+                {/* Overview */}
+                {lesson?.overview && (
+                    <div className="lesson-overview">
+                        <div className="overview-icon">📘</div>
+                        {lesson.overview}
+                    </div>
+                )}
+
+                {/* Previous Summary */}
+                {lesson?.previous_summary && (
+                    <div className="lesson-summary">
+                        <h3>📌 Previous Summary</h3>
+                        <div className="summary-content">
+                            {typeof lesson.previous_summary === "object"
+                                ? renderContent(lesson.previous_summary)
+                                : lesson.previous_summary}
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {lesson?.content && (
-                        <div className="lesson-content">
-                            <h3>Content</h3>
+                {/* Main Content */}
+                {lesson?.content && (
+                    <div className="lesson-content">
+                        <h3>📖 Lesson Content</h3>
+                        <div className="content-grid">
                             {renderContent(lesson.content)}
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {lesson?.quizzes && (
-                        <div className="lesson-quizzes">
-                            <h3>Quiz</h3>
-                            {Array.isArray(lesson.quizzes) ? (
-                                lesson.quizzes.map((quiz, quizIndex) => (
-                                    <div key={quizIndex} className="quiz-item">
-                                        <p className="quiz-question">{quiz.question}</p>
-                                        <ul className="quiz-options">
-                                            {quiz.options.map((option, optIndex) => (
-                                                <li
-                                                    key={optIndex}
-                                                    onClick={() => handleQuizOptionClick(quizIndex, option)}
-                                                    className="quiz-option"
-                                                >
-                                                    {option}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                        {selectedAnswers[quizIndex] && (
-                                            <p className="quiz-feedback">
-                                                {quizFeedbacks[quizIndex]}
-                                            </p>
-                                        )}
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="quiz-item">
-                                    <p className="quiz-question">{lesson.quizzes.question}</p>
-                                    <ul className="quiz-options">
-                                        {lesson.quizzes.options.map((option, index) => (
-                                            <li
-                                                key={index}
-                                                onClick={() => handleQuizOptionClick(0, option)}
-                                                className="quiz-option"
-                                            >
-                                                {option}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                    {selectedAnswers[0] && (
-                                        <p className="quiz-feedback">
-                                            {quizFeedbacks[0]}
-                                        </p>
-                                    )}
+                {/* Quizzes */}
+                {lesson?.quizzes && (
+                    <div className="lesson-quizzes">
+                        <h3>📝 Knowledge Check</h3>
+                        {(Array.isArray(lesson.quizzes)
+                            ? lesson.quizzes
+                            : [lesson.quizzes]).map((quiz, quizIndex) => (
+                            <div key={quizIndex} className="quiz-item">
+                                <p className="quiz-question">{quiz.question}</p>
+                                <div className="quiz-options">
+                                    {quiz.options?.map((option, optIndex) => (
+                                        <div
+                                            key={optIndex}
+                                            className={`quiz-option ${
+                                                selectedAnswers[quizIndex] === option ? 'selected' : ''
+                                            }`}
+                                            onClick={() => handleQuizOptionClick(quizIndex, option)}
+                                        >
+                                            {option}
+                                        </div>
+                                    ))}
                                 </div>
-                            )}
-                        </div>
-                    )}
+                                {quizFeedbacks[quizIndex] && (
+                                    <div className="quiz-feedback">
+                                        {quizFeedbacks[quizIndex]}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                    {lesson?.flashcards && (
-                        <div className="lesson-flashcards">
-                            <h3>Flashcards</h3>
-                            <div className="flashcard-grid">
-                                {(Array.isArray(lesson.flashcards)
-                                        ? lesson.flashcards
-                                        : Object.values(lesson.flashcards)
-                                ).map((flashcard, index) => (
-                                    <div key={index} className="flashcard">
-                                        <div className="flashcard-inner">
-                                            <div className="flashcard-front">
-                                                <p>{flashcard.term}</p>
-                                            </div>
-                                            <div className="flashcard-back">
-                                                <p>{flashcard.definition}</p>
-                                            </div>
+                {/* Flashcards */}
+                {lesson?.flashcards && (
+                    <div className="lesson-flashcards">
+                        <h3>🔑 Key Concepts</h3>
+                        <div className="flashcard-grid">
+                            {(Array.isArray(lesson.flashcards)
+                                ? lesson.flashcards
+                                : Object.entries(lesson.flashcards)).map((flashcard, index) => (
+                                <div key={index} className="flashcard">
+                                    <div className="flashcard-inner">
+                                        <div className="flashcard-front">
+                                            <p>{Array.isArray(flashcard) ? flashcard[0] : flashcard.term}</p>
+                                        </div>
+                                        <div className="flashcard-back">
+                                            <p>{Array.isArray(flashcard) ? flashcard[1] : flashcard.definition}</p>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {lesson?.graphs && <GraphRenderer graph={lesson.graphs} />}
-
-                    {lesson?.interactives && (
-                        <div className="lesson-interactives">
-                            <h3>Interactive Activities</h3>
-                            {lesson.interactives.map((item, idx) => (
-                                <InteractiveRenderer key={idx} interactive={item} />
+                                </div>
                             ))}
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {lesson?.takeaways && (
-                        <div className="lesson-takeaways">
-                            <h3>Takeaways</h3>
-                            <ul>
-                                {lesson.takeaways.map((takeaway, index) => (
-                                    <li key={index}>{takeaway}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
+                {/* Interactive Activities */}
+                {lesson?.interactives && (
+                    <div className="lesson-interactives">
+                        <h3>🎮 Interactive Learning</h3>
+                        {lesson.interactives.length > 0 ? (
+                            lesson.interactives.map((interactive, idx) => (
+                                <InteractiveRenderer
+                                    key={idx}
+                                    interactive={{
+                                        ...interactive,
+                                        pairs: interactive.pairs || [],
+                                        items: interactive.items || [],
+                                        regions: interactive.regions || [],
+                                        hotspots: interactive.hotspots || []
+                                    }}
+                                />
+                            ))
+                        ) : (
+                            <div className="empty-state">
+                                🎲 No interactive activities available for this lesson
+                            </div>
+                        )}
+                    </div>
+                )}
 
-                    {references.length > 0 && (
-                        <div className="lesson-references bg-gray-100 p-4 rounded-lg shadow-md">
-                            <h3 className="text-xl font-bold mb-2 text-left">References</h3>
-                            <div className="space-y-2">
-                                {references.filter(ref => typeof ref === 'string').map((ref, index) => {
-                                    const parts = ref.split('Source:');
-                                    const cleanLink = parts.length > 1
-                                        ? parts[1].split(']')[0].trim()
-                                        : ref;
+                {/* References */}
+                {references.length > 0 && (
+                    <div className="lesson-references">
+                        <h3>📚 Reference Materials</h3>
+                        <div className="references-grid">
+                            {references
+                                .filter(ref => typeof ref === 'string')
+                                .map((ref, index) => {
+                                    const cleanRef = ref.replace(/^Source:\s*/i, '');
                                     return (
-                                        <div key={index} className="flex items-center space-x-2 p-2 bg-white rounded-md shadow-sm">
+                                        <div key={index} className="reference-item">
                                             <img
                                                 src="https://upload.wikimedia.org/wikipedia/commons/6/63/Wikipedia-logo.png"
-                                                alt="Wikipedia"
-                                                className="w-2 h-2"
+                                                alt="Reference"
+                                                className="reference-icon"
                                             />
                                             <a
-                                                href={cleanLink}
+                                                href={cleanRef}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="text-blue-600 font-semibold hover:underline"
+                                                className="reference-link"
                                             >
-                                                {cleanLink}
+                                                {cleanRef}
                                             </a>
                                         </div>
                                     );
                                 })}
-                            </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {currentLessonIndex < toc.length - 1 && (
-                        <div className="lesson-navigation">
-                            <button
-                                className="next-button"
-                                onClick={calculateScoreAndShowPopup}
-                            >
-                                {Object.keys(selectedAnswers).length === 0 ?
-                                    "Skip to Next Lesson" :
-                                    "Check Score & Continue"
-                                }
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Score Popup */}
-            {showScorePopup && (
-                <div className="score-popup-overlay">
-                    <div className="score-popup">
-                        <h3>Quiz Score: {quizScore.toFixed(0)}%</h3>
-                        <p>
-                            {quizScore === 100 ? (
-                                <>🎉 Perfect score! Great Going! The next lesson will be
-                                    generated at {' '}
-                                    <strong>{nextDifficulty}</strong> difficulty.</>
-                            ) : (
-                                <>👍 Good effort! You're getting there! The next lesson will
-                                    be generated at {' '}
-                                    <strong>{nextDifficulty}</strong> difficulty. Keep practicing!</>
-                            )}
-                        </p>
+                {/* Navigation */}
+                {currentLessonIndex < toc?.length - 1 && (
+                    <div className="lesson-navigation">
                         <button
-                            className={`proceed-button ${
-                                quizScore === 100 ? 'success'
-                                    : 'warning'
-                            }`}
-                            onClick={() => {
-                                setShowScorePopup(false);
-                                handleNextLesson();
-                            }}
+                            className="next-button"
+                            onClick={calculateScoreAndShowPopup}
                         >
-                            Proceed
+                            {Object.keys(selectedAnswers).length === 0
+                                ? "Continue Learning →"
+                                : "Check Progress →"}
                         </button>
                     </div>
-                </div>
-            )}
+                )}
+
+                {/* Score Popup */}
+                {showScorePopup && (
+                    <div className="score-popup-overlay">
+                        <div className="score-popup">
+                            <h3>🎉 Progress Update</h3>
+                            <div className="score-display">
+                                <div className="score-value">{quizScore.toFixed(0)}%</div>
+                                <p className="score-message">
+                                    {quizScore === 100 ? (
+                                        <>Perfect score! Ready for the next challenge at <strong>{nextDifficulty}</strong> level!</>
+                                    ) : (
+                                        <>Great effort! Next lesson will be <strong>{nextDifficulty}</strong> difficulty</>
+                                    )}
+                                </p>
+                            </div>
+                            <button
+                                className={`proceed-button ${quizScore === 100 ? 'success' : 'warning'}`}
+                                onClick={() => {
+                                    setShowScorePopup(false);
+                                    handleNextLesson();
+                                }}
+                            >
+                                Continue Journey →
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
+
+// Helper function for content rendering
+
 
 export default LessonPage;
