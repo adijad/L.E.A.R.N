@@ -4,32 +4,105 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background-color: #f8fafc;
     color: #1e293b;
-    position: relative; /* Required for the right-sidebar positioning */
+    position: relative;
+    /* Required for the right-sidebar positioning */
+}
+
+/* loading next lesson*/
+.loading-wrapper {
+    height: 10px;
+    width: 90%;
+
+    margin-block-start: 2rem;
+    margin-inline: 5%;
+
+    background: #CFD8DC;
+    border-radius: 5px;
+
+    overflow: hidden;
+}
+
+.loader {
+    background-color: #304FFE;
+    height: 100%;
+    width: 80%;
+    animation: loading 2s ease infinite;
+}
+
+@keyframes loading {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(130%);
+    }
+}
+
+/* laoding while translating */
+.loader-container {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    overflow: visible;
+}
+
+.loaderSVG {
+    width: 240px;
+    height: 60px;
+    overflow: visible;
+}
+
+.loader-layout {
+    display: flex;
+    /* Keep flexbox */
+    width: 100%;
+    margin-inline-start: 25rem;
+    /* Add top/bottom margin and auto for horizontal centering */
+    padding: 0 20px;
+    /* Adjust horizontal padding, remove vertical from here */
+    min-height: calc(100vh - 80px);
+    /* Adjust min-height to account for top/bottom margin */
+    align-items: center;
+    /* Vertically align items in the flex container */
+    justify-content: center;
+    /* Horizontally align items in the flex container */
+    flex-direction: column;
+    /* Stack sidebar and content vertically initially */
 }
 
 /* ====================== Lesson Layout ====================== */
 .lesson-layout {
-    display: flex; /* Keep flexbox */
+    display: flex;
+    /* Keep flexbox */
     max-width: 1400px;
-    margin: 40px auto; /* Add top/bottom margin and auto for horizontal centering */
-    padding: 0 20px; /* Adjust horizontal padding, remove vertical from here */
-    min-height: calc(100vh - 80px); /* Adjust min-height to account for top/bottom margin */
-    align-items: center; /* Vertically align items in the flex container */
-    justify-content: center; /* Horizontally align items in the flex container */
-    flex-direction: column; /* Stack sidebar and content vertically initially */
+    margin: 40px auto;
+    /* Add top/bottom margin and auto for horizontal centering */
+    padding: 0 20px;
+    /* Adjust horizontal padding, remove vertical from here */
+    min-height: calc(100vh - 80px);
+    /* Adjust min-height to account for top/bottom margin */
+    align-items: center;
+    /* Vertically align items in the flex container */
+    justify-content: center;
+    /* Horizontally align items in the flex container */
+    flex-direction: column;
+    /* Stack sidebar and content vertically initially */
 }
 
 /* ====================== Left Sidebar Styles ====================== */
 .lesson-sidebar-left {
-    width: 280px; /* Keep fixed width */
+    width: 280px;
+    /* Keep fixed width */
     background: white;
     border-radius: 16px;
     padding: 25px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
     /* Remove position: sticky and top as we are changing the layout */
     /* Remove height restriction */
     overflow-y: auto;
-    margin-right: 40px; /* Keep right margin for spacing in larger layouts */
+    margin-right: 40px;
+    /* Keep right margin for spacing in larger layouts */
 }
 
 .lesson-sidebar-left h3 {
@@ -93,12 +166,14 @@ body {
 
 /* ====================== Main Content Styles ====================== */
 .lesson-container {
-    width: 100%; /* Make the container take full width within the centered layout */
-    max-width: 1000px; /* Optionally set a max width for the content */
+    width: 100%;
+    /* Make the container take full width within the centered layout */
+    max-width: 1000px;
+    /* Optionally set a max width for the content */
     background: white;
     border-radius: 16px;
     padding: 40px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
     /* Remove margin-left as we are centering the whole layout */
 }
 
@@ -245,7 +320,7 @@ body {
 .quiz-option:hover {
     transform: translateY(-2px);
     border-color: #3b82f6;
-    box-shadow: 0 4px 12px rgba(59,130,246,0.1);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
 
 .quiz-feedback {
@@ -298,7 +373,7 @@ body {
     padding: 20px;
     font-size: 1.1rem;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .flashcard-front {
@@ -464,7 +539,7 @@ body {
 .next-button:hover {
     background: #2563eb;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59,130,246,0.2);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
 /* ====================== Progress Popup ====================== */
@@ -474,7 +549,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -485,7 +560,7 @@ body {
     background: white;
     border-radius: 16px;
     padding: 40px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     max-width: 500px;
     width: 90%;
     text-align: center;
@@ -516,26 +591,39 @@ body {
     color: white;
 }
 
-@media (min-width: 1025px) { /* Apply flex row layout on larger screens */
+@media (min-width: 1025px) {
+
+    /* Apply flex row layout on larger screens */
     .lesson-layout {
-        flex-direction: row; /* Put sidebar and content in a row */
-        align-items: flex-start; /* Align items to the top */
-        justify-content: flex-start; /* Align items to the left */
-        padding: 40px 20px; /* Restore original padding */
-        min-height: 100vh; /* Restore full viewport height */
-        margin: 0 auto; /* Remove top/bottom margin for full height layout */
+        flex-direction: row;
+        /* Put sidebar and content in a row */
+        align-items: flex-start;
+        /* Align items to the top */
+        justify-content: flex-start;
+        /* Align items to the left */
+        padding: 40px 20px;
+        /* Restore original padding */
+        min-height: 100vh;
+        /* Restore full viewport height */
+        margin: 0 auto;
+        /* Remove top/bottom margin for full height layout */
     }
 
     .lesson-sidebar-left {
-        position: sticky; /* Restore sticky sidebar */
+        position: sticky;
+        /* Restore sticky sidebar */
         top: 20px;
-        height: calc(100vh - 40px * 2 - 20px); /* Restore sidebar height */
-        margin-right: 40px; /* Keep right margin */
+        height: calc(100vh - 40px * 2 - 20px);
+        /* Restore sidebar height */
+        margin-right: 40px;
+        /* Keep right margin */
     }
 
     .lesson-container {
-        flex-grow: 1; /* Allow content to take remaining space */
-        margin-left: 0; /* Remove left margin */
+        flex-grow: 1;
+        /* Allow content to take remaining space */
+        margin-left: 0;
+        /* Remove left margin */
     }
 }
 

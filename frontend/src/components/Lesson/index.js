@@ -29,7 +29,6 @@ import {
 import "./index.css";
 import languageOptions from "../../constants/languageOptions";
 
-
 /* -----------------------------------------------
    1) GRAPH RENDERING (unchanged logic)
 ----------------------------------------------- */
@@ -189,13 +188,15 @@ const renderContent = (content) => {
             if (item.heading && item.description) {
                 return (
                     <div key={key} className="mb-6">
-                        <h3 className="text-2xl font-semibold text-blue-800">{item.heading}</h3>
+                        <h3 className="text-2xl font-semibold text-blue-800">
+                            {item.heading}
+                        </h3>
                         <p className="font-bold text-gray-700">{item.description}</p>
                     </div>
                 );
             }
 
-            if (typeof item === 'object' || Array.isArray(item)) {
+            if (typeof item === "object" || Array.isArray(item)) {
                 return (
                     <div key={key} className="content-section mb-6">
                         <div className="font-bold text-xl">{renderContent(item)}</div>
@@ -502,20 +503,33 @@ const InteractiveRenderer = ({ interactive }) => {
 
 const LessonPage = () => {
     const { state } = useLocation();
-    const { topic, lesson_name, toc, email: stateEmail, language: stateLanguage } = state || {};
-    const [currentLanguage, setCurrentLanguage] = useState(stateLanguage || "English_USA");
+    const {
+        topic,
+        lesson_name,
+        toc: stateToc,
+        email: stateEmail,
+        language: stateLanguage,
+    } = state || {};
+    const [currentLanguage, setCurrentLanguage] = useState(
+        stateLanguage || "English_USA"
+    );
+    const [toc, setCurrentToC] = useState(stateToc);
     const email = stateEmail || localStorage.getItem("userEmail");
     const [references, setReferences] = useState([]);
     const [lesson, setLesson] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
     const [lessonName, setLessonName] = useState(lesson_name);
     const [showScorePopup, setShowScorePopup] = useState(false);
     const [quizScore, setQuizScore] = useState(0);
-    const [nextDifficulty, setNextDifficulty] = useState('');
+    const [nextDifficulty, setNextDifficulty] = useState("");
     const [selectedAnswers, setSelectedAnswers] = useState({});
     const [quizFeedbacks, setQuizFeedbacks] = useState({});
+
+    //loading states
+    const [nextLessonLoad, setNextLessonLoad] = useState(false);
+    const [translateLoad, setTranslateLoad] = useState(false);
 
     // Helper function to map a language code to its user-friendly label.
     const getLabelFromCode = (code) => {
@@ -523,45 +537,91 @@ const LessonPage = () => {
         return lang ? lang.label : "English (USA)";
     };
 
+    //translate
+    const translateLesson = async () => {
+        setLoading(true)
+        try {
+            // Call the /translate API with the current lesson JSON
+            const response = await axios.post(
+                `http://127.0.0.1:8000/translate?language=${encodeURIComponent(
+                    getLabelFromCode(currentLanguage)
+                )}`,
+                { lesson }, // Payload structure: { lesson: { ... } }
+                { headers: { "Content-Type": "application/json" } }
+            );
+            // Update lesson with translated lesson JSON.
+            if (response.data.lesson) {
+                console.log(response.data.lesson);
+                setLesson(response.data.lesson);
+            }
+        } catch (error) {
+            console.error("Error translating lesson", error);
+        }
+        finally {
+            setLoading(false);
+        }
+    };
+
+    const translateToC = async () => {
+        try {
+            // Call the /translate API with the current lesson JSON
+            const response = await axios.post(
+                `http://127.0.0.1:8000/translate?language=${encodeURIComponent(
+                    getLabelFromCode(currentLanguage)
+                )}`,
+                { toc }, // Payload structure: { lesson: { ... } }
+                { headers: { "Content-Type": "application/json" } }
+            );
+            // Update lesson with translated lesson JSON.
+            if (response.data.toc) {
+                console.log(response.data.toc);
+                setCurrentToC(response.data.toc);
+            }
+        } catch (error) {
+            console.error("Error translating lesson", error);
+        }
+    };
+
+    //fetch lesson
+    const fetchLesson = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.post(
+                `http://127.0.0.1:8000/generate_lesson?language=${encodeURIComponent(
+                    getLabelFromCode(currentLanguage)
+                )}`,
+                { topic, lesson_name, toc },
+                { headers: { "Content-Type": "application/json" } }
+            );
+
+            const lessonData = response.data.lesson.lesson || response.data.lesson;
+            const referencesData = response.data.lesson.references || [];
+
+            setLesson(lessonData);
+            setReferences(referencesData);
+
+            const index = toc.findIndex((item) => item === lesson_name);
+            setCurrentLessonIndex(index);
+
+            await axios.post("http://localhost:8080/api/auth/progress/save", {
+                email,
+                topic,
+                lessonName: lesson_name,
+                tocIndex: index,
+                completed: false,
+                lessonJson: JSON.stringify(lessonData),
+            });
+        } catch (err) {
+            console.error(err);
+            setError("Failed to load lesson.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchLesson = async () => {
-            try {
-                setLoading(true);
-                const response = await axios.post(
-                    `http://127.0.0.1:8000/generate_lesson?language=${encodeURIComponent(getLabelFromCode(currentLanguage))}`,
-                    { topic, lesson_name, toc },
-                    { headers: { "Content-Type": "application/json" } }
-                );
-
-                const lessonData = response.data.lesson.lesson || response.data.lesson;
-                const referencesData = response.data.lesson.references || [];
-
-                setLesson(lessonData);
-                setReferences(referencesData);
-
-                const index = toc.findIndex(item => item === lesson_name);
-                setCurrentLessonIndex(index);
-
-                await axios.post("http://localhost:8080/api/auth/progress/save", {
-                    email,
-                    topic,
-                    lessonName: lesson_name,
-                    tocIndex: index,
-                    completed: false,
-                    lessonJson: JSON.stringify(lessonData),
-                });
-
-            } catch (err) {
-                console.error(err);
-                setError("Failed to load lesson.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (topic && lesson_name && toc) fetchLesson();
-    }, [topic, lesson_name, toc, email, currentLanguage]);
+        if (lesson_name) fetchLesson();
+    }, [lesson_name]);
 
     // ---------------------------------
     // 2) When the language changes, translate the loaded lesson.
@@ -570,38 +630,25 @@ const LessonPage = () => {
         // Only translate if a lesson exists
         if (!lesson) return;
 
-        const translateLesson = async () => {
-            try {
-                // Call the /translate API with the current lesson JSON
-                const response = await axios.post(
-                    `http://127.0.0.1:8000/translate?language=${encodeURIComponent(getLabelFromCode(currentLanguage))}`,
-                    { lesson }, // Payload structure: { lesson: { ... } }
-                    { headers: { "Content-Type": "application/json" } }
-                );
-                // Update lesson with translated lesson JSON.
-                if (response.data) {
-                    setLesson(response.data);
-                }
-            } catch (error) {
-                console.error("Error translating lesson", error);
-            }
-        };
-
         translateLesson();
+        translateToC();
     }, [currentLanguage]); // Runs whenever language changes
 
     const handleQuizOptionClick = (quizIndex, option) => {
         if (!lesson?.quizzes) return;
 
-        const quizzes = Array.isArray(lesson.quizzes) ? lesson.quizzes : [lesson.quizzes];
+        const quizzes = Array.isArray(lesson.quizzes)
+            ? lesson.quizzes
+            : [lesson.quizzes];
         const correctAnswer = quizzes[quizIndex]?.answer;
 
         if (!correctAnswer) return;
 
-        setSelectedAnswers(prev => ({ ...prev, [quizIndex]: option }));
-        setQuizFeedbacks(prev => ({
+        setSelectedAnswers((prev) => ({ ...prev, [quizIndex]: option }));
+        setQuizFeedbacks((prev) => ({
             ...prev,
-            [quizIndex]: option === correctAnswer ? "✅ Correct!" : "❌ Incorrect, try again!"
+            [quizIndex]:
+                option === correctAnswer ? "✅ Correct!" : "❌ Incorrect, try again!",
         }));
     };
 
@@ -611,7 +658,9 @@ const LessonPage = () => {
             return;
         }
 
-        const quizzes = Array.isArray(lesson.quizzes) ? lesson.quizzes : [lesson.quizzes];
+        const quizzes = Array.isArray(lesson.quizzes)
+            ? lesson.quizzes
+            : [lesson.quizzes];
         let correct = 0;
 
         quizzes.forEach((quiz, index) => {
@@ -632,38 +681,199 @@ const LessonPage = () => {
             });
         }
 
-        setNextDifficulty(
-            score < 50 ? 'Easy' :
-                score <= 80 ? 'Medium' : 'Hard'
-        );
+        setNextDifficulty(score < 50 ? "Easy" : score <= 80 ? "Medium" : "Hard");
         setShowScorePopup(score > 0);
     };
 
     const handleNextLesson = async () => {
         const nextLessonName = toc[currentLessonIndex + 1];
         try {
-            setLoading(true);
-            const response = await axios.post("http://127.0.0.1:8000/generate_lesson", {
-                topic,
-                lesson_name: nextLessonName,
-                toc
-            });
+            // setLoading(true);
+            setNextLessonLoad(true);
+            const response = await axios.post(
+                `http://127.0.0.1:8000/generate_lesson?language=${encodeURIComponent(
+                    getLabelFromCode(currentLanguage)
+                )}`,
+                {
+                    topic,
+                    lesson_name: nextLessonName,
+                    toc,
+                },
+                { headers: { "Content-Type": "application/json" } }
+            );
 
             setLesson(response.data.lesson.lesson || response.data.lesson);
-            setCurrentLessonIndex(prev => prev + 1);
+            setCurrentLessonIndex((prev) => prev + 1);
             setSelectedAnswers({});
             setQuizFeedbacks({});
             setLessonName(nextLessonName);
-
         } catch (err) {
             console.error("Failed to load next lesson:", err);
             setError("Failed to load next lesson.");
         } finally {
-            setLoading(false);
+            setNextLessonLoad(false);
+            // setLoading(false);
         }
     };
 
-    if (loading) return <div className="lesson-loading">📚 Loading lesson...</div>;
+    // if (loading) return <div className="lesson-loading">📚 Loading lesson...</div>;
+
+    //------------ Fancy Loading ---------------------------
+
+    if (loading)
+        return (
+            <div className="loader-layout">
+            <div className="loader-container">
+                <svg className="loaderSVG" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="15" cy="15" r="16" fill="#3b82f6">
+                        <animate
+                            attributeName="cy"
+                            values="15;7;15;15"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                            calcMode="spline"
+                            repeatCount="indefinite"
+                            begin="0s"
+                        />
+                        <animate
+                            attributeName="ry"
+                            values="8;8;6;8"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            repeatCount="indefinite"
+                            begin="0s"
+                        />
+                        <animate
+                            attributeName="rx"
+                            values="8;8;9;8"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            repeatCount="indefinite"
+                            begin="0s"
+                        />
+                        <animate
+                            attributeName="fill"
+                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                            dur="1.6s"
+                            repeatCount="indefinite"
+                            begin="0s"
+                        />
+                    </circle>
+
+                    <circle cx="60" cy="15" r="16" fill="#3b82f6">
+                        <animate
+                            attributeName="cy"
+                            values="15;7;15;15"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                            calcMode="spline"
+                            repeatCount="indefinite"
+                            begin="0.4s"
+                        />
+                        <animate
+                            attributeName="ry"
+                            values="8;8;6;8"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            repeatCount="indefinite"
+                            begin="0.4s"
+                        />
+                        <animate
+                            attributeName="rx"
+                            values="8;8;9;8"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            repeatCount="indefinite"
+                            begin="0.4s"
+                        />
+                        <animate
+                            attributeName="fill"
+                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                            dur="1.6s"
+                            repeatCount="indefinite"
+                            begin="0.4s"
+                        />
+                    </circle>
+
+                    <circle cx="105" cy="15" r="16" fill="#3b82f6">
+                        <animate
+                            attributeName="cy"
+                            values="15;7;15;15"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                            calcMode="spline"
+                            repeatCount="indefinite"
+                            begin="0.8s"
+                        />
+                        <animate
+                            attributeName="ry"
+                            values="8;8;6;8"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            repeatCount="indefinite"
+                            begin="0.8s"
+                        />
+                        <animate
+                            attributeName="rx"
+                            values="8;8;9;8"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            repeatCount="indefinite"
+                            begin="0.8s"
+                        />
+                        <animate
+                            attributeName="fill"
+                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                            dur="1.6s"
+                            repeatCount="indefinite"
+                            begin="0.8s"
+                        />
+                    </circle>
+                    <circle cx="150" cy="15" r="16" fill="#3b82f6">
+                        <animate
+                            attributeName="cy"
+                            values="15;7;15;15"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                            calcMode="spline"
+                            repeatCount="indefinite"
+                            begin="0.8s"
+                        />
+                        <animate
+                            attributeName="ry"
+                            values="8;8;6;8"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            repeatCount="indefinite"
+                            begin="0.8s"
+                        />
+                        <animate
+                            attributeName="rx"
+                            values="8;8;9;8"
+                            dur="1.6s"
+                            keyTimes="0;0.3;0.6;1"
+                            repeatCount="indefinite"
+                            begin="0.8s"
+                        />
+                        <animate
+                            attributeName="fill"
+                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                            dur="1.6s"
+                            repeatCount="indefinite"
+                            begin="0.8s"
+                        />
+                    </circle>
+                </svg>
+            </div>
+            </div>
+        );
+
+    //----------------
+
     if (error) return <div className="lesson-error">⚠️ {error}</div>;
 
     return (
@@ -671,7 +881,6 @@ const LessonPage = () => {
             {/* Sidebar */}
             <div className="lesson-header">
                 <div className="lesson-language-selector">
-                    
                     <select
                         id="lesson-language-select"
                         value={currentLanguage}
@@ -692,8 +901,11 @@ const LessonPage = () => {
                         <li
                             key={index}
                             className={
-                                index < currentLessonIndex ? "toc-visited" :
-                                    index === currentLessonIndex ? "toc-current" : "toc-locked"
+                                index < currentLessonIndex
+                                    ? "toc-visited"
+                                    : index === currentLessonIndex
+                                        ? "toc-current"
+                                        : "toc-locked"
                             }
                         >
                             {item}
@@ -732,9 +944,7 @@ const LessonPage = () => {
                 {lesson?.content && (
                     <div className="lesson-content">
                         <h3>📖 Lesson Content</h3>
-                        <div className="content-grid">
-                            {renderContent(lesson.content)}
-                        </div>
+                        <div className="content-grid">{renderContent(lesson.content)}</div>
                     </div>
                 )}
 
@@ -744,16 +954,16 @@ const LessonPage = () => {
                         <h3>📝 Knowledge Check</h3>
                         {(Array.isArray(lesson.quizzes)
                             ? lesson.quizzes
-                            : [lesson.quizzes]).map((quiz, quizIndex) => (
+                            : [lesson.quizzes]
+                        ).map((quiz, quizIndex) => (
                             <div key={quizIndex} className="quiz-item">
                                 <p className="quiz-question">{quiz.question}</p>
                                 <div className="quiz-options">
                                     {quiz.options?.map((option, optIndex) => (
                                         <div
                                             key={optIndex}
-                                            className={`quiz-option ${
-                                                selectedAnswers[quizIndex] === option ? 'selected' : ''
-                                            }`}
+                                            className={`quiz-option ${selectedAnswers[quizIndex] === option ? "selected" : ""
+                                                }`}
                                             onClick={() => handleQuizOptionClick(quizIndex, option)}
                                         >
                                             {option}
@@ -777,14 +987,23 @@ const LessonPage = () => {
                         <div className="flashcard-grid">
                             {(Array.isArray(lesson.flashcards)
                                 ? lesson.flashcards
-                                : Object.entries(lesson.flashcards)).map((flashcard, index) => (
+                                : Object.entries(lesson.flashcards)
+                            ).map((flashcard, index) => (
                                 <div key={index} className="flashcard">
                                     <div className="flashcard-inner">
                                         <div className="flashcard-front">
-                                            <p>{Array.isArray(flashcard) ? flashcard[0] : flashcard.term}</p>
+                                            <p>
+                                                {Array.isArray(flashcard)
+                                                    ? flashcard[0]
+                                                    : flashcard.term}
+                                            </p>
                                         </div>
                                         <div className="flashcard-back">
-                                            <p>{Array.isArray(flashcard) ? flashcard[1] : flashcard.definition}</p>
+                                            <p>
+                                                {Array.isArray(flashcard)
+                                                    ? flashcard[1]
+                                                    : flashcard.definition}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -808,7 +1027,7 @@ const LessonPage = () => {
                                         pairs: interactive.pairs || [],
                                         items: interactive.items || [],
                                         regions: interactive.regions || [],
-                                        hotspots: interactive.hotspots || []
+                                        hotspots: interactive.hotspots || [],
                                     }}
                                 />
                             ))
@@ -831,16 +1050,15 @@ const LessonPage = () => {
                     </div>
                 )}
 
-
                 {/* References */}
                 {references.length > 0 && (
                     <div className="lesson-references">
                         <h3>📚 Reference Materials</h3>
                         <div className="references-grid">
                             {references
-                                .filter(ref => typeof ref === 'string')
+                                .filter((ref) => typeof ref === "string")
                                 .map((ref, index) => {
-                                    const cleanRef = ref.replace(/^Source:\s*/i, '');
+                                    const cleanRef = ref.replace(/^Source:\s*/i, "");
                                     return (
                                         <div key={index} className="reference-item">
                                             <img
@@ -864,7 +1082,7 @@ const LessonPage = () => {
                 )}
 
                 {/* Navigation */}
-                {currentLessonIndex < toc?.length - 1 && (
+                {currentLessonIndex < toc?.length - 1 && !nextLessonLoad ? (
                     <div className="lesson-navigation">
                         <button
                             className="next-button"
@@ -874,6 +1092,10 @@ const LessonPage = () => {
                                 ? "Continue Learning →"
                                 : "Check Progress →"}
                         </button>
+                    </div>
+                ) : (
+                    <div class="loading-wrapper">
+                        <div class="loader"></div>
                     </div>
                 )}
 
@@ -886,16 +1108,21 @@ const LessonPage = () => {
                                 <div className="score-value">{quizScore.toFixed(0)}%</div>
                                 <p className="score-message">
                                     {quizScore === 100 ? (
-                                        <>Perfect score! Ready for the next challenge
-                                            at <strong>{nextDifficulty}</strong> level!</>
+                                        <>
+                                            Perfect score! Ready for the next challenge at{" "}
+                                            <strong>{nextDifficulty}</strong> level!
+                                        </>
                                     ) : (
-                                        <>Great effort! Next lesson will
-                                            be <strong>{nextDifficulty}</strong> difficulty</>
+                                        <>
+                                            Great effort! Next lesson will be{" "}
+                                            <strong>{nextDifficulty}</strong> difficulty
+                                        </>
                                     )}
                                 </p>
                             </div>
                             <button
-                                className={`proceed-button ${quizScore === 100 ? 'success' : 'warning'}`}
+                                className={`proceed-button ${quizScore === 100 ? "success" : "warning"
+                                    }`}
                                 onClick={() => {
                                     setShowScorePopup(false);
                                     handleNextLesson();
@@ -912,6 +1139,5 @@ const LessonPage = () => {
 };
 
 // Helper function for content rendering
-
 
 export default LessonPage;
