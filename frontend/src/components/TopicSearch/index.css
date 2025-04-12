@@ -1,3 +1,4 @@
+/* index.css */
 /* General Styles (Keep these) */
 * {
   box-sizing: border-box;
@@ -97,56 +98,60 @@ nav {
 .topic-search-container {
   font-family: "Segoe UI", sans-serif;
   background-color: #f4f6f8;
-  padding: 30px;
-  margin-left: 220px; /* Adjust according to your navbar width */
-  transition: margin-left 0.3s ease;
+  position: fixed; /* Make it take up the whole screen */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
-  justify-content: center; /* Center vertically */
-  align-items: center; /* Center horizontally */
-  min-height: calc(100vh - 0px); /* Ensure full viewport height */
-  padding-right: 30px; /* Consistent right padding */
+  justify-content: center;
+  align-items: center;
+  padding-left: 220px; /* Keep sidebar visible */
 }
 
 .topic-search-card {
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 60px; /* Increased padding to make it bigger */
   text-align: center;
-  width: 100%;
-  max-width: 500px; /* Adjust card width as needed */
+  width: 80%; /* Increased width to make it bigger */
+  max-width: 800px; /* Further limit the maximum width */
+  margin: 20px; /* Add some margin around the card */
+  position: relative; /* Make this the positioning context */
 }
 
 .topic-search-header {
-  text-align: center;
-  margin-bottom: 30px;
+  text-align: left; /* Align header text to the left */
+  margin-bottom: 40px; /* Increased margin */
 }
 
 .topic-search-header h1 {
-  font-size: 2.5rem;
+  font-size: 3rem; /* Increased font size */
   color: #333;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
 }
 
 .topic-search-header p.topic-search-subtitle {
   color: #777;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
+  text-align: left; /* Align subtitle text to the left */
 }
 
 /* Topic Search Input Group */
 .topic-input-group { /* Renamed for clarity */
   display: flex;
-  gap: 15px;
-  margin-bottom: 30px;
+  gap: 20px; /* Increased gap */
+  margin-bottom: 40px; /* Increased margin */
   width: 100%;
 }
 
 .topic-search-input {
   flex-grow: 1;
-  padding: 15px;
+  padding: 18px; /* Increased padding */
   border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  border-radius: 10px; /* More rounded */
+  font-size: 1.2rem;
   outline: none;
   transition: border-color 0.3s ease;
 }
@@ -156,19 +161,121 @@ nav {
   box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.25);
 }
 
+/* Language Selector Styles (Positioned Top Right of Card) */
+.language-selector {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10; /* Ensure it's above other card content */
+  width: 150px; /* Adjust width as needed */
+  text-align: left;
+}
+
+.language-selector select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 100%;
+  padding: 10px 35px 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: white;
+  font-size: 0.9rem;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+.language-selector select:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.language-selector select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+
+/* Modern dropdown options styling */
+.language-selector option {
+  padding: 10px 12px;
+  background: white;
+  color: #1e293b;
+  transition: background 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.language-selector option:hover {
+  background: #f8fafc;
+}
+
+.language-selector option:checked {
+  background: #eff6ff;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .topic-search-container {
+    padding-left: 0;
+    padding-top: 60px; /* Adjust for dropdown */
+    padding-right: 20px; /* Adjust for dropdown */
+  }
+
+  .topic-search-card {
+    padding: 40px;
+    transform: none;
+    width: 95%;
+    max-width: none;
+  }
+
+  .topic-input-group {
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 30px;
+  }
+  .topic-search-button {
+    width: 100%;
+  }
+
+  .language-selector {
+    top: 15px;
+    right: 15px;
+    width: 120px;
+  }
+
+  .language-selector select {
+    font-size: 0.8rem;
+    padding: 8px 30px 8px 10px;
+    background-position: right 8px center;
+    background-size: 14px;
+  }
+
+  .language-selector option {
+    font-size: 0.8rem;
+    padding: 8px 10px;
+  }
+}
+
 /* Search Button */
 .topic-search-button {
   background-color: #007bff;
   color: white;
   border: none;
-  padding: 15px 20px;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  padding: 18px 25px; /* Increased padding */
+  border-radius: 10px;
+  font-size: 1.2rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   justify-content: center; /* Center text in button */
 }
 
@@ -177,7 +284,7 @@ nav {
 }
 
 .topic-search-icon {
-  font-size: 1.2rem;
+  font-size: 1.4rem;
 }
 
 /* Table of Contents Container */
@@ -185,24 +292,25 @@ nav {
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  padding: 25px;
-  margin-top: 20px;
+  padding: 30px;
+  margin-top: 30px;
   width: 100%; /* Take full available width */
-  max-width: 700px; /* Limit width of TOC if needed */
+  max-width: 900px; /* Limit width of TOC if needed */
 }
 
 /* TOC Table (Keep these, adjust if needed) */
 .toc-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 15px;
+  margin-top: 20px;
 }
 
 .toc-table th,
 .toc-table td {
-  padding: 12px;
+  padding: 15px;
   border-bottom: 1px solid #eee;
   text-align: left;
+  font-size: 1rem;
 }
 
 .toc-table th {
@@ -225,24 +333,4 @@ nav {
   color: #6c757d; /* Grey for disabled */
   pointer-events: none;
   opacity: 0.7;
-}
-
-/* Responsive Design (Adjust if needed) */
-@media (max-width: 768px) {
-  .topic-search-container {
-    padding-left: 15px;
-    padding-right: 15px;
-    margin-left: 0;
-    justify-content: flex-start; /* Revert to top alignment on smaller screens if needed */
-    align-items: stretch; /* Revert to stretch alignment on smaller screens if needed */
-  }
-  .topic-search-card {
-    padding: 30px;
-  }
-  .topic-input-group {
-    flex-direction: column;
-  }
-  .topic-search-button {
-    width: 100%;
-  }
 }

@@ -1,4 +1,3 @@
-
 /* index.css - Table of Contents Modifications */
 .toc-modern-container {
   position: fixed; /* Make it take up the whole screen */
@@ -18,10 +17,57 @@
   padding: 40px;
   max-width: 800px;
   margin: 20px auto; /* Add some top/bottom margin and center */
-  position: relative;
+  position: relative; /* Make this the positioning context */
   display: flex; /* Enable flexbox for content distribution */
   flex-direction: column; /* Stack header and list */
   min-height: calc(100% - 40px * 2 - 40px); /* Adjust min-height to fill available space */
+}
+
+.toc-language-selector {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10; /* Ensure it's above other card content */
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toc-language-selector label {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.toc-language-selector select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 10px 30px 10px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 1rem;
+  color: #495057;
+  cursor: pointer;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+}
+
+.toc-language-selector select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  outline: 0;
+}
+
+.toc-language-selector option {
+  font-size: 1rem;
+  color: #495057;
+  background-color: white;
+  padding: 0.5rem 1rem;
 }
 
 .toc-header {
@@ -238,6 +284,11 @@
 
   .toc-list {
     margin-top: 20px;
+  }
+
+  .toc-language-selector {
+    top: 10px;
+    right: 10px;
   }
 }
 
