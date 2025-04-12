@@ -141,4 +141,17 @@ public class UserController {
         return ResponseEntity.ok(completedLessons);
     }
 
+    @DeleteMapping("/progress/deleteCourse")
+    public ResponseEntity<?> deleteCourse(
+            @RequestParam String email,
+            @RequestParam String topic) {
+        try {
+            progressService.deleteUserCourseData(email, topic);
+            return ResponseEntity.ok(Map.of("message", "Course '" + topic + "' removed successfully."));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to delete course: " + e.getMessage()));
+        }
+    }
+
 }

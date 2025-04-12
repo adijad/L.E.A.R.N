@@ -10,7 +10,7 @@ import java.util.Optional;
 public interface UserTopicProgressRepository extends JpaRepository<UserTopicProgress, Long> {
     Optional<UserTopicProgress> findByUserAndTopic(Users user, String topic);
     List<UserTopicProgress> findByUser(Users user);
-
+    void deleteByUserAndTopic(Users user, String topic);
 
 
 }

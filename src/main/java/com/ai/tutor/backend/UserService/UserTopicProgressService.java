@@ -8,6 +8,7 @@ import com.ai.tutor.backend.repository.UserRepository;
 import com.ai.tutor.backend.repository.UserTopicProgressRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -67,6 +68,16 @@ public class UserTopicProgressService {
                 .stream()
                 .map(UserLessonProgress::getLessonName)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteUserCourseData(String email, String topic) {
+        Users user = userService.findByEmail(email);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found with email: " + email);
+        }
+        userLessonProgressRepository.deleteByUserAndTopic(user, topic);
+        userTopicProgressRepository.deleteByUserAndTopic(user, topic);
     }
 }
 
