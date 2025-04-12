@@ -671,7 +671,7 @@ const LessonPage = () => {
             {/* Sidebar */}
             <div className="lesson-header">
                 <div className="lesson-language-selector">
-                    <label htmlFor="lesson-language-select">Language:</label>
+                    
                     <select
                         id="lesson-language-select"
                         value={currentLanguage}
@@ -701,7 +701,6 @@ const LessonPage = () => {
                     ))}
                 </ul>
             </aside>
-            <label htmlFor="lesson-language-select">Language:</label>
 
             {/* Main Content */}
             <div className="lesson-container">

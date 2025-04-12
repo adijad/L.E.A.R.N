@@ -43,7 +43,7 @@ body {
 .lesson-toc {
     list-style: none;
     padding: 0;
-    margin: 0;
+    margin-inline-start: 15rem;
 }
 
 .lesson-toc li {

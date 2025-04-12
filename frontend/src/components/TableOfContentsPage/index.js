@@ -99,15 +99,15 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
                 getLabelFromCode(currentLanguage)
             )}`,
             {
-              lessons: tableOfContents,
+              table_of_contents: tableOfContents,
             },
             {
               headers: { "Content-Type": "application/json" },
             }
         );
 
-        if (Array.isArray(response.data.translated_lessons)) {
-          setTableOfContents(response.data.translated_lessons);
+        if (Array.isArray(response.data.table_of_contents)) {
+          setTableOfContents(response.data.table_of_contents);
         } else {
           console.warn("Unexpected translate response:", response.data);
         }
