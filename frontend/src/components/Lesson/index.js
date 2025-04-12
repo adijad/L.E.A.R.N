@@ -27,6 +27,7 @@ import {
 } from "recharts";
 
 import "./index.css";
+import languageOptions from "../../constants/languageOptions";
 
 /* -----------------------------------------------
    1) GRAPH RENDERING (unchanged logic)
@@ -499,7 +500,9 @@ const InteractiveRenderer = ({ interactive }) => {
 ----------------------------------------------- */
 const LessonPage = () => {
     const { state } = useLocation();
-    const { topic, lesson_name, toc, email: stateEmail  } = state || {};
+    const { topic, lesson_name, toc, email: stateEmail, language: stateLanguage} = state || {};
+    const [currentLanguage, setCurrentLanguage] = useState(stateLanguage || "English_USA");
+    
     const email = stateEmail || localStorage.getItem("userEmail");
     const [references, setReferences] = useState([]);
     const [lesson, setLesson] = useState(null);
@@ -514,13 +517,20 @@ const LessonPage = () => {
     const [quizScore, setQuizScore] = useState(0);
     const [nextDifficulty, setNextDifficulty] = useState('');
 
+    // Helper function to map a language code to its user-friendly label.
+    const getLabelFromCode = (code) => {
+        const lang = languageOptions.find((l) => l.code === code);
+        return lang ? lang.label : "English (USA)";
+    };
+
     useEffect(() => {
         const fetchLesson = async () => {
             try {
                 setLoading(true);
                 const response = await axios.post(
-                    "http://127.0.0.1:8000/generate_lesson",
-                    { topic, lesson_name, toc }
+                    `http://127.0.0.1:8000/generate_lesson?language=${encodeURIComponent(getLabelFromCode(currentLanguage))}`,
+                    { topic, lesson_name, toc },
+                    { headers: { "Content-Type": "application/json" } }
                 );
                 const lessonData = response.data.lesson.lesson || response.data.lesson;
                 const referencesData = response.data.lesson.references || [];
@@ -555,7 +565,34 @@ const LessonPage = () => {
 
 
         if (topic && lesson_name && toc) fetchLesson();
-    }, [topic, lesson_name, toc]);
+    }, [topic, lesson_name, toc, currentLanguage]);
+
+    // ---------------------------------
+    // 2) When the language changes, translate the loaded lesson.
+    // ---------------------------------
+    useEffect(() => {
+        // Only translate if a lesson exists
+        if (!lesson) return;
+
+        const translateLesson = async () => {
+            try {
+                // Call the /translate API with the current lesson JSON
+                const response = await axios.post(
+                    `http://127.0.0.1:8000/translate?language=${encodeURIComponent(getLabelFromCode(currentLanguage))}`,
+                    { lesson }, // Payload structure: { lesson: { ... } }
+                    { headers: { "Content-Type": "application/json" } }
+                );
+                // Update lesson with translated lesson JSON.
+                if (response.data) {
+                    setLesson(response.data);
+                }
+            } catch (error) {
+                console.error("Error translating lesson", error);
+            }
+        };
+
+        translateLesson();
+    }, [currentLanguage]); // Runs whenever language changes
 
     const isLocked = (index) => index > currentLessonIndex;
 
@@ -676,6 +713,27 @@ const LessonPage = () => {
 
     return (
         <div className="lesson-layout">
+
+            {/* Separate header container for language selector */}
+            <div className="lesson-header">
+                <div className="lesson-language-selector">
+                    <label htmlFor="lesson-language-select">Language:</label>
+                    <select
+                        id="lesson-language-select"
+                        value={currentLanguage}
+                        onChange={(e) => setCurrentLanguage(e.target.value)}
+                    >
+                        {languageOptions.map((lang) => (
+                            <option key={lang.code} value={lang.code}>
+                                {lang.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+
+
             <aside className="lesson-sidebar">
                 <h3>Table of Contents</h3>
                 <ul className="lesson-toc">

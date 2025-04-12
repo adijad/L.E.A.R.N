@@ -170,6 +170,7 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
         lesson_name: lessonName,
         toc: tableOfContents,
         email,
+        language: currentLanguage
       };
       navigate("/home/lesson", { state: dataToSend });
     }

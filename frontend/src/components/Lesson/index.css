@@ -1,3 +1,20 @@
+.lesson-header {
+    width: 100%;
+    background: #f8f9fa; /* optional background */
+    padding: 1rem;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 1rem;
+}
+
+.lesson-language-selector {
+    text-align: right;
+}
+
+.lesson-language-selector label {
+    margin-right: 0.5rem;
+}
+
+
 /* Layout */
 .lesson-layout {
     display: flex;
