@@ -240,7 +240,7 @@ def rag_retrieve(query: str) -> list:
     try:
         response = agent_executor.invoke({"input": query})
         output_text = response.get("output", "")
-        print(f"Raw output from agent_executor: {output_text}")
+        # print(f"Raw output from agent_executor: {output_text}")
 
         references = []
         urls = re.findall(r"https?://[^\s\)]+", output_text)
@@ -290,8 +290,26 @@ def clean_json_response(response_text):
 # Step 3: Load All Previous Lessons for Context
 # ------------------------------
 
+# def load_previous_lessons(topic):
+#     """Loads all previous lessons for the topic to use as context."""
+#     folder = topic.replace(" ", "_")
+#     texts = []
+#     if os.path.exists(folder):
+#         for filename in sorted(os.listdir(folder)):
+#             if filename.endswith(".json"):
+#                 filepath = os.path.join(folder, filename)
+#                 with open(filepath, "r") as f:
+#                     lesson_json = json.load(f)
+#                     if "lesson" in lesson_json:
+#                         title = lesson_json["lesson"]["title"]
+#                         overview = lesson_json["lesson"]["overview"]
+#                         content = lesson_json["lesson"]["content"]
+#                         takeaways = lesson_json["lesson"]["takeaways"]
+#                         texts.append(f"{title}\n{overview}\n{content}\n{takeaways}")
+#     return "\n".join(texts) if texts else ""
+
+
 def load_previous_lessons(topic):
-    """Loads all previous lessons for the topic to use as context."""
     folder = topic.replace(" ", "_")
     texts = []
     if os.path.exists(folder):
@@ -301,13 +319,11 @@ def load_previous_lessons(topic):
                 with open(filepath, "r") as f:
                     lesson_json = json.load(f)
                     if "lesson" in lesson_json:
-                        title = lesson_json["lesson"]["title"]
-                        overview = lesson_json["lesson"]["overview"]
-                        content = lesson_json["lesson"]["content"]
-                        takeaways = lesson_json["lesson"]["takeaways"]
-                        texts.append(f"{title}\n{overview}\n{content}\n{takeaways}")
+                        l = lesson_json["lesson"]
+                        texts.append(
+                            f"{l.get('title', '')}\n{l.get('overview', '')}\n{l.get('content', '')}\n{l.get('takeaways', '')}"
+                        )
     return "\n".join(texts) if texts else ""
-
 # ------------------------------
 # Step 5: Save Generated Lesson to File
 # ------------------------------

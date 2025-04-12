@@ -217,7 +217,6 @@ def clean_json_response(response_text):
 # Step 3: Load All Previous Lessons for Context
 # ------------------------------
 
-
 def load_previous_lessons(topic):
     """Loads all previous lessons for the topic to use as context."""
     folder = topic.replace(" ", "_")

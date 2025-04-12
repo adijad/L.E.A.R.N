@@ -112,7 +112,7 @@ def wikipedia_with_clickable_link(query):
     clean_references = [ref.replace("\n", "") for ref in references]
 
     # Debugging: Check the cleaned references
-    print(f"Clean References: {clean_references}")
+    # print(f"Clean References: {clean_references}")
 
     return clean_references
 
@@ -175,35 +175,35 @@ def wikipedia_with_clickable_link(query):
 # --------------------------------------------------------------
 ### Initialize Google Scholar API Wrapper for Document Retrieval
 #---------------------------------------------------------------
-class GoogleScholarRetriever:
-    def __init__(self, top_k=3):
-        self.wrapper = GoogleSearchAPIWrapper(
-            google_api_key=google_api_key,
-            google_cse_id=google_cse_id
-        )
-        self.search = GoogleSearchRun(api_wrapper=self.wrapper)
-        self.top_k = top_k
-
-    def search(self, query):
-        results = self.search.run(query)
-        return results[:self.top_k]
-
-
-def google_scholar_with_clickable_link(query):
-    retriever = GoogleScholarRetriever(top_k=3)
-    results = retriever.search(query)
-
-    # Extract only clean URLs
-    clean_links = [entry.get("link", "") for entry in results if "link" in entry]
-
-    # Debug print
-    print(f"\nGoogle Scholar URLs: {clean_links}")
-
-    return clean_links
-
-### Test Google Scholar Tool
-query = "Quantum Computing"
-response = google_scholar_with_clickable_link(query)
+# class GoogleScholarRetriever:
+#     def __init__(self, top_k=3):
+#         self.wrapper = GoogleSearchAPIWrapper(
+#             google_api_key=google_api_key,
+#             google_cse_id=google_cse_id
+#         )
+#         self.search = GoogleSearchRun(api_wrapper=self.wrapper)
+#         self.top_k = top_k
+#
+#     def search(self, query):
+#         results = self.search.run(query)
+#         return results[:self.top_k]
+#
+#
+# def google_scholar_with_clickable_link(query):
+#     retriever = GoogleScholarRetriever(top_k=3)
+#     results = retriever.search(query)
+#
+#     # Extract only clean URLs
+#     clean_links = [entry.get("link", "") for entry in results if "link" in entry]
+#
+#     # Debug print
+#     print(f"\nGoogle Scholar URLs: {clean_links}")
+#
+#     return clean_links
+#
+# ### Test Google Scholar Tool
+# query = "Quantum Computing"
+# response = google_scholar_with_clickable_link(query)
 
 
 
@@ -373,13 +373,13 @@ pubmed_tool = Tool(
     description="Search for academic research papers from PubMed based on a given query. Use this tool for medical and scientific topics."
 )
 
-google_scholar_tool = Tool(
-    name="GoogleScholar_Search",
-    func=google_scholar_with_clickable_link,
-    description="Search Google Scholar for academic articles and return source URLs only."
-)
+# google_scholar_tool = Tool(
+#     name="GoogleScholar_Search",
+#     func=google_scholar_with_clickable_link,
+#     description="Search Google Scholar for academic articles and return source URLs only."
+# )
 
-tools = [wikipedia_tool, pubmed_tool, google_scholar_tool]
+tools = [wikipedia_tool, pubmed_tool]
 
 
 
