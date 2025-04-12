@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import TableOfContentsPage from "../TableOfContentsPage";
-import { FaSearch } from 'react-icons/fa';
 import "./index.css";
 import languageOptions from "../../constants/languageOptions";
 
@@ -8,6 +7,7 @@ const TopicSearch = () => {
     const [topic, setTopic] = useState("");
     const [showTOC, setShowTOC] = useState(false);
     const [language, setLanguage] = useState("English_USA");
+
     const handleSearch = () => {
         if (!topic.trim()) {
             alert("Please enter a topic!");
@@ -19,20 +19,24 @@ const TopicSearch = () => {
     return (
         <div className="topic-search-container">
             <div className="topic-search-card">
-                <div className="language-selector">
-                    <select
-                        id="language-select"
-                        value={language}
-                        onChange={(e) => setLanguage(e.target.value)}
-                        aria-label="Select language"
-                    >
-                        {languageOptions.map((lang) => (
-                            <option key={lang.code} value={lang.code}>
-                                {lang.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                {/* Conditionally render the language selector */}
+                {!showTOC && (
+                    <div className="language-selector">
+                        <select
+                            id="language-select"
+                            value={language}
+                            onChange={(e) => setLanguage(e.target.value)}
+                            aria-label="Select language"
+                        >
+                            {languageOptions.map((lang) => (
+                                <option key={lang.code} value={lang.code}>
+                                    {lang.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
                 <div className="topic-search-header">
                     <h1>Explore Topics</h1>
                     <p className="topic-search-subtitle">Discover new learning paths and expand your knowledge.</p>
@@ -54,7 +58,7 @@ const TopicSearch = () => {
                 )}
 
                 {showTOC && (
-                    <TableOfContentsPage topic={topic} language={language}/>
+                    <TableOfContentsPage topic={topic} language={language} />
                 )}
             </div>
         </div>
