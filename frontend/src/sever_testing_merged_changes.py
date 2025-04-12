@@ -1,70 +1,45 @@
+import asyncio
+import os
+import sys
 import webbrowser
 from typing import List
 from xml.etree import ElementTree
+
 import requests
 from bs4 import BeautifulSoup
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from langchain.agents import AgentExecutor, create_openai_tools_agent
-from langchain.schema import Document
-from langchain.tools import Tool
-from langchain_community.tools import WikipediaQueryRun
-from langchain_community.utilities import WikipediaAPIWrapper
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain_community.tools import WikipediaQueryRun
-from langchain_community.utilities import WikipediaAPIWrapper
-import os
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
 from langchain.tools import Tool
-import requests
-from bs4 import BeautifulSoup
-import asyncio
-from typing import List
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
-from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
-import requests
-from xml.etree import ElementTree
-import webbrowser
-from langchain.agents import create_openai_tools_agent
-from langchain.agents import AgentExecutor
-import sys
+from langchain_community.tools import WikipediaQueryRun
+from langchain_community.utilities import WikipediaAPIWrapper
+from langchain_google_genai import (ChatGoogleGenerativeAI,
+                                    GoogleGenerativeAIEmbeddings)
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'RAG_for_server_testing')))
-from RAG_for_server_testing import tools
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, SystemMessagePromptTemplate
-import openai
-from dotenv import load_dotenv
-import json
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List
-import re
-import time
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from tts_converter import generate_tts_audio
 import json
 import os
 import re
 import time
 from enum import Enum
 from typing import List
+
 import openai
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from langchain_core.prompts import (
-    ChatPromptTemplate,
-    HumanMessagePromptTemplate,
-    MessagesPlaceholder,
-    SystemMessagePromptTemplate,
-)
+from fastapi.responses import FileResponse
+from langchain_core.prompts import (ChatPromptTemplate,
+                                    HumanMessagePromptTemplate,
+                                    MessagesPlaceholder,
+                                    SystemMessagePromptTemplate)
 from openai import OpenAI
 from pydantic import BaseModel
 from RAG_for_server_testing import tools
+from tts_converter import generate_tts_audio
 
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "RAG_code"))

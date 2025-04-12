@@ -37,3 +37,6 @@ __pycache__/
 
 ### Lessons Cache ###
 frontend/src/lessons/
+
+### Audio Cache ###
+frontend/src/audio/
