@@ -27,6 +27,7 @@ import {
 } from "recharts";
 
 import "./index.css";
+import TTSSection from "./tts";
 import languageOptions from "../../constants/languageOptions";
 
 /* -----------------------------------------------
@@ -164,9 +165,11 @@ const GraphRenderer = ({ graph }) => {
 /* -----------------------------------------------
    2) RENDER CONTENT RECURSIVELY
 ----------------------------------------------- */
-const renderContent = (content) => {
+const renderContent = (content, currentLanguage) => {
     if (typeof content === "string" || typeof content === "number") {
-        return <p className="font-bold text-gray-700">{content}</p>;
+        return (<p className="font-bold text-gray-700">
+            {content} <TTSSection text={content.toString()} />
+        </p>);
     }
 
     if (Array.isArray(content)) {
@@ -174,7 +177,7 @@ const renderContent = (content) => {
             <div className="pl-4">
                 {content.map((item, index) => (
                     <div key={index} className="mb-6">
-                        {renderContent(item)}
+                        {renderContent(item, currentLanguage)}
                     </div>
                 ))}
             </div>
@@ -184,6 +187,7 @@ const renderContent = (content) => {
     if (typeof content === "object" && content !== null) {
         return Object.keys(content).map((key) => {
             const item = content[key];
+            
 
             if (item.heading && item.description) {
                 return (
@@ -192,6 +196,7 @@ const renderContent = (content) => {
                             {item.heading}
                         </h3>
                         <p className="font-bold text-gray-700">{item.description}</p>
+                        <TTSSection text={item.heading.toString() + item.description.toString()} currentLanguage={currentLanguage}/>
                     </div>
                 );
             }
@@ -199,7 +204,8 @@ const renderContent = (content) => {
             if (typeof item === "object" || Array.isArray(item)) {
                 return (
                     <div key={key} className="content-section mb-6">
-                        <div className="font-bold text-xl">{renderContent(item)}</div>
+                        <div className="font-bold text-xl">{renderContent(item, currentLanguage)}</div>
+                        <TTSSection text={item.toString()} currentLanguage={currentLanguage}/>
                     </div>
                 );
             }
@@ -207,6 +213,7 @@ const renderContent = (content) => {
             return (
                 <div key={key} className="content-section mb-6">
                     <p className="font-bold text-gray-700">{item}</p>
+                    <TTSSection text={item.toString()} currentLanguage={currentLanguage}/>
                 </div>
             );
         });
@@ -214,6 +221,155 @@ const renderContent = (content) => {
 
     return null;
 };
+
+// Helper: Format snake_case key to Capitalized Words.
+// const formatKey = (key) =>
+//     key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+
+// ==========================
+// CollapsibleSection Component
+// ==========================
+// const CollapsibleSection = ({ sectionKey, value, level }) => {
+//     const isTopLevel = level === 1;
+//     const [open, setOpen] = useState(true);
+
+//     // Compute heading text.
+//     const heading = formatKey(sectionKey);
+//     const HeaderTag = `h${Math.min(level + 1, 5)}`;
+
+//     // Decide if we display TTS icon for top-level sections.
+//     let ttsText = "";
+//     if (typeof value === "string" || typeof value === "number") {
+//         ttsText = value.toString();
+//     } else if (
+//         Array.isArray(value) &&
+//         value.every((item) => typeof item === "string" || typeof item === "number")
+//     ) {
+//         ttsText = value.join(". ");
+//     }
+//     const showTTS = isTopLevel && ttsText.length > 0;
+
+//     return (
+//         <div
+//             className={`mb-6 ${isTopLevel ? "rounded-xl shadow-md p-4 bg-white border" : ""
+//                 }`}
+//         >
+//             {isTopLevel ? (
+//                 <div
+//                     className="flex items-center justify-between cursor-pointer mb-2"
+//                     onClick={() => setOpen((prev) => !prev)}
+//                 >
+//                     <div className="flex items-center gap-2">
+//                         {showTTS && (
+//                             <span onClick={(e) => e.stopPropagation()}>
+//                                 <TTSSection text={`${heading}. ${ttsText}`} />
+//                             </span>
+//                         )}
+//                         <HeaderTag
+//                             className={`font-bold ${isTopLevel
+//                                     ? "text-2xl text-blue-800"
+//                                     : level === 2
+//                                         ? "text-xl text-purple-700"
+//                                         : "text-lg text-green-800"
+//                                 }`}
+//                         >
+//                             {heading}
+//                         </HeaderTag>
+//                     </div>
+//                     <span className="text-gray-500 text-sm select-none">
+//                         {open ? "▾" : "▸"}
+//                     </span>
+//                 </div>
+//             ) : (
+//                 <div className="flex items-center gap-2 mb-2">
+//                     {showTTS && (
+//                         <span onClick={(e) => e.stopPropagation()}>
+//                             <TTSSection text={`${heading}. ${ttsText}`} />
+//                         </span>
+//                     )}
+//                     <HeaderTag
+//                         className={`font-bold ${level === 2 ? "text-xl text-purple-700" : "text-lg text-green-800"
+//                             }`}
+//                     >
+//                         {heading}
+//                     </HeaderTag>
+//                 </div>
+//             )}
+
+//             {(!isTopLevel || open) && (
+//                 <div className="ml-4 mt-2">{renderContent(value, level + 1)}</div>
+//             )}
+//         </div>
+//     );
+// };
+
+// ==========================
+// renderContent Function
+// ==========================
+// const renderContent = (content, level = 1) => {
+//     // 1. Primitives → render as paragraph.
+//     if (typeof content === "string" || typeof content === "number") {
+//         return <p className="text-gray-700 italic">{content}</p>;
+//     }
+
+//     // 2. Arrays:
+//     if (Array.isArray(content)) {
+//         // If array of primitives → render as an ordered list.
+//         if (
+//             content.every(
+//                 (item) => typeof item === "string" || typeof item === "number"
+//             )
+//         ) {
+//             return (
+//                 <ol className="list-decimal list-inside ml-6 text-gray-800">
+//                     {content.map((item, idx) => (
+//                         <li key={idx}>{item}</li>
+//                     ))}
+//                 </ol>
+//             );
+//         }
+//         // Otherwise, assume array of objects.
+//         return (
+//             <>
+//                 {content.map((item, idx) => (
+//                     <div key={idx} className="ml-4 mb-4 border-l-2 border-gray-200 pl-4">
+//                         {renderContent(item, level + 1)}
+//                     </div>
+//                 ))}
+//             </>
+//         );
+//     }
+
+//     // 3. Objects: iterate over its keys.
+//     if (typeof content === "object" && content !== null) {
+//         return (
+//             <div>
+//                 {Object.entries(content).map(([key, value]) =>
+//                     level === 1 ? (
+//                         <CollapsibleSection
+//                             key={key}
+//                             sectionKey={key}
+//                             value={value}
+//                             level={level}
+//                         />
+//                     ) : (
+//                         <div key={key} className="mb-4">
+//                             <div className="flex items-center gap-2 mb-1">
+//                                 <h4 className="font-bold text-lg text-green-800">
+//                                     {formatKey(key)}
+//                                 </h4>
+//                             </div>
+//                             <div className="ml-4">{renderContent(value, level + 1)}</div>
+//                         </div>
+//                     )
+//                 )}
+//             </div>
+//         );
+//     }
+
+//     // 4. Fallback.
+//     return null;
+// };
 
 /* -----------------------------------------------
    3) INTERACTIVE COMPONENTS (actual logic)
@@ -539,7 +695,7 @@ const LessonPage = () => {
 
     //translate
     const translateLesson = async () => {
-        setLoading(true)
+        setLoading(true);
         try {
             // Call the /translate API with the current lesson JSON
             const response = await axios.post(
@@ -556,8 +712,7 @@ const LessonPage = () => {
             }
         } catch (error) {
             console.error("Error translating lesson", error);
-        }
-        finally {
+        } finally {
             setLoading(false);
         }
     };
@@ -723,152 +878,156 @@ const LessonPage = () => {
     if (loading)
         return (
             <div className="loader-layout">
-            <div className="loader-container">
-                <svg className="loaderSVG" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="15" cy="15" r="16" fill="#3b82f6">
-                        <animate
-                            attributeName="cy"
-                            values="15;7;15;15"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
-                            calcMode="spline"
-                            repeatCount="indefinite"
-                            begin="0s"
-                        />
-                        <animate
-                            attributeName="ry"
-                            values="8;8;6;8"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            repeatCount="indefinite"
-                            begin="0s"
-                        />
-                        <animate
-                            attributeName="rx"
-                            values="8;8;9;8"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            repeatCount="indefinite"
-                            begin="0s"
-                        />
-                        <animate
-                            attributeName="fill"
-                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
-                            dur="1.6s"
-                            repeatCount="indefinite"
-                            begin="0s"
-                        />
-                    </circle>
+                <div className="loader-container">
+                    <svg
+                        className="loaderSVG"
+                        viewBox="0 0 120 30"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <circle cx="15" cy="15" r="16" fill="#3b82f6">
+                            <animate
+                                attributeName="cy"
+                                values="15;7;15;15"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                calcMode="spline"
+                                repeatCount="indefinite"
+                                begin="0s"
+                            />
+                            <animate
+                                attributeName="ry"
+                                values="8;8;6;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0s"
+                            />
+                            <animate
+                                attributeName="rx"
+                                values="8;8;9;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0s"
+                            />
+                            <animate
+                                attributeName="fill"
+                                values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                dur="1.6s"
+                                repeatCount="indefinite"
+                                begin="0s"
+                            />
+                        </circle>
 
-                    <circle cx="60" cy="15" r="16" fill="#3b82f6">
-                        <animate
-                            attributeName="cy"
-                            values="15;7;15;15"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
-                            calcMode="spline"
-                            repeatCount="indefinite"
-                            begin="0.4s"
-                        />
-                        <animate
-                            attributeName="ry"
-                            values="8;8;6;8"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            repeatCount="indefinite"
-                            begin="0.4s"
-                        />
-                        <animate
-                            attributeName="rx"
-                            values="8;8;9;8"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            repeatCount="indefinite"
-                            begin="0.4s"
-                        />
-                        <animate
-                            attributeName="fill"
-                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
-                            dur="1.6s"
-                            repeatCount="indefinite"
-                            begin="0.4s"
-                        />
-                    </circle>
+                        <circle cx="60" cy="15" r="16" fill="#3b82f6">
+                            <animate
+                                attributeName="cy"
+                                values="15;7;15;15"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                calcMode="spline"
+                                repeatCount="indefinite"
+                                begin="0.4s"
+                            />
+                            <animate
+                                attributeName="ry"
+                                values="8;8;6;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.4s"
+                            />
+                            <animate
+                                attributeName="rx"
+                                values="8;8;9;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.4s"
+                            />
+                            <animate
+                                attributeName="fill"
+                                values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                dur="1.6s"
+                                repeatCount="indefinite"
+                                begin="0.4s"
+                            />
+                        </circle>
 
-                    <circle cx="105" cy="15" r="16" fill="#3b82f6">
-                        <animate
-                            attributeName="cy"
-                            values="15;7;15;15"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
-                            calcMode="spline"
-                            repeatCount="indefinite"
-                            begin="0.8s"
-                        />
-                        <animate
-                            attributeName="ry"
-                            values="8;8;6;8"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            repeatCount="indefinite"
-                            begin="0.8s"
-                        />
-                        <animate
-                            attributeName="rx"
-                            values="8;8;9;8"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            repeatCount="indefinite"
-                            begin="0.8s"
-                        />
-                        <animate
-                            attributeName="fill"
-                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
-                            dur="1.6s"
-                            repeatCount="indefinite"
-                            begin="0.8s"
-                        />
-                    </circle>
-                    <circle cx="150" cy="15" r="16" fill="#3b82f6">
-                        <animate
-                            attributeName="cy"
-                            values="15;7;15;15"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
-                            calcMode="spline"
-                            repeatCount="indefinite"
-                            begin="0.8s"
-                        />
-                        <animate
-                            attributeName="ry"
-                            values="8;8;6;8"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            repeatCount="indefinite"
-                            begin="0.8s"
-                        />
-                        <animate
-                            attributeName="rx"
-                            values="8;8;9;8"
-                            dur="1.6s"
-                            keyTimes="0;0.3;0.6;1"
-                            repeatCount="indefinite"
-                            begin="0.8s"
-                        />
-                        <animate
-                            attributeName="fill"
-                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
-                            dur="1.6s"
-                            repeatCount="indefinite"
-                            begin="0.8s"
-                        />
-                    </circle>
-                </svg>
-            </div>
+                        <circle cx="105" cy="15" r="16" fill="#3b82f6">
+                            <animate
+                                attributeName="cy"
+                                values="15;7;15;15"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                calcMode="spline"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="ry"
+                                values="8;8;6;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="rx"
+                                values="8;8;9;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="fill"
+                                values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                dur="1.6s"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                        </circle>
+                        <circle cx="150" cy="15" r="16" fill="#3b82f6">
+                            <animate
+                                attributeName="cy"
+                                values="15;7;15;15"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                calcMode="spline"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="ry"
+                                values="8;8;6;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="rx"
+                                values="8;8;9;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="fill"
+                                values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                dur="1.6s"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                        </circle>
+                    </svg>
+                </div>
             </div>
         );
 
@@ -934,7 +1093,7 @@ const LessonPage = () => {
                         <h3>📌 Previous Summary</h3>
                         <div className="summary-content">
                             {typeof lesson.previous_summary === "object"
-                                ? renderContent(lesson.previous_summary)
+                                ? renderContent(lesson.previous_summary, currentLanguage)
                                 : lesson.previous_summary}
                         </div>
                     </div>
@@ -943,8 +1102,8 @@ const LessonPage = () => {
                 {/* Main Content */}
                 {lesson?.content && (
                     <div className="lesson-content">
-                        <h3>📖 Lesson Content</h3>
-                        <div className="content-grid">{renderContent(lesson.content)}</div>
+                        <h3 className="mb-4">📖 Lesson Content</h3>
+                        <div className="content-grid">{renderContent(lesson.content, currentLanguage)}</div>
                     </div>
                 )}
 
