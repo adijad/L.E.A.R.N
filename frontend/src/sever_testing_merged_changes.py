@@ -29,9 +29,9 @@ from typing import List
 import openai
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from langchain_core.prompts import (ChatPromptTemplate,
                                     HumanMessagePromptTemplate,
                                     MessagesPlaceholder,
@@ -39,6 +39,7 @@ from langchain_core.prompts import (ChatPromptTemplate,
 from openai import OpenAI
 from pydantic import BaseModel
 from RAG_for_server_testing import tools
+
 from tts_converter import generate_tts_audio
 
 sys.path.append(
@@ -111,7 +112,13 @@ origins = [
     "http://127.0.0.1:3002",
 ]
 
+from fastapi.staticfiles import StaticFiles
+
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -166,12 +173,23 @@ class Language(Enum):
     Vietnamese = "Vietnamese"
 
 
+LANGUAGE_TO_VOICE_ID = {
+    Language.English_USA: "kdmDKE6EkgrWrrykO9Qt",
+    Language.French_France: "QbsdzCokdlo98elkq4Pc",
+    Language.Hindi: "zgqefOY5FPQ3bB7OZTVR",
+    Language.Arabic_Saudi_Arabia: "DPd861uv5p6zeVV94qOT"
+    # Add more mappings here
+}
+
+
 # ------------------------------
 # FastAPI Models
 # ------------------------------
 class TopicRequest(BaseModel):
     topic: str
 
+class TTSRequest(BaseModel):
+    text: str
 
 class LessonRequest(BaseModel):
     topic: str
@@ -412,7 +430,7 @@ async def generate_lesson(
             messages=[
                 {
                     "role": "system",
-                    "content": 'You are an AI tutor that creates structured and interactive learning lessons in given language. If language is Non-Latin based script, output the lesson in the respective script. Ensure lessons are engaging, well-organized, and contain quizzes. For every lesson you generate, you follow the following JSON format: \{"lesson": \{title: "", overview:"", previous_summary:"", content: \{ you are free to take liberties here\}, quizzes: {question, options, answer}, flashcards: {term, definition} \}, graphs: {title, code, explanation}, takeaways: [], "interactives": [ optional array of interactive elements ] \}. You dont need to have all interactive elements in one lesson but have at least one. You may have multiple of them as you see fit and relevant. You may choose from: \{ type:timeline, title, data: [ \{ year, event \} ] \}, \{ type: memory_match, title, pairs: [ \{ term, definition \} ] \}, \{ type: drag_drop,  prompt, items: [ \{ label, target \} ] \}, \{ type: map, title, regions: [ \{ name, highlight, tooltip \} ] \}, \{ type: map_hotspots,  image, hotspots: [ \{ label, x, y, tooltip \} ] \}, \{type: typing_challenge,  text \}, \{type: sort, prompt, items: [ "..." ] \}',
+                    "content": 'You are an AI tutor that creates structured and interactive learning lessons in given language. If language is Non-Latin based script, output the lesson in the respective script. Ensure lessons are engaging, well-organized, and contain quizzes with at least 5 questions. For every lesson you generate, you follow the following JSON format: \{"lesson": \{title: "", overview:"", previous_summary:"", content: \{ you are free to take liberties here\}, quizzes: {question, options, answer}, flashcards: {term, definition} \}, graphs: {title, code, explanation}, takeaways: [], "interactives": [ optional array of interactive elements ] \}. You dont need to have all interactive elements in one lesson but have at least one. You may have multiple of them as you see fit and relevant. You may choose from: \{ type:timeline, title, data: [ \{ year, event \} ] \}, \{ type: memory_match, title, pairs: [ \{ term, definition \} ] \}, \{ type: drag_drop,  prompt, items: [ \{ label, target \} ] \}, \{ type: map, title, regions: [ \{ name, highlight, tooltip \} ] \}, \{ type: map_hotspots,  image, hotspots: [ \{ label, x, y, tooltip \} ] \}, \{type: typing_challenge,  text \}, \{type: sort, prompt, items: [ "..." ] \}',
                 },
                 {
                     "role": "user",
@@ -501,6 +519,33 @@ async def translate(payload: dict, language: Language = Language.English_USA):
         )
 
     return translated_json
+
+
+
+
+@app.post("/tts")
+async def tts_generate(payload: TTSRequest, language: Language = Language.English_USA):
+    text = payload.text.strip()
+    if language.value not in [lang.value for lang in Language]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The language '{language.value}' is not supported."
+        )
+
+    if not text:
+        raise HTTPException(status_code=400, detail="Text is required.")
+
+    voice_id = LANGUAGE_TO_VOICE_ID.get(language)
+    if not voice_id:
+        raise HTTPException(status_code=400, detail=f"No voice configured for language: {language.value}")
+
+    try:
+        file_path = await generate_tts_audio(text, voice_id=voice_id)
+        audio_url = f"http://localhost:8000/{file_path.replace(os.sep, '/')}"
+        return {"audioUrl": audio_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS generation failed: {str(e)}")
+
 
 
 # ------------------------------

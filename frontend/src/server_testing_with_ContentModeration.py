@@ -31,7 +31,7 @@ import re
 import time
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from tts_converter import generate_tts_audio
+from frontend.src.tts_converter_old import generate_tts_audio
 
 
 # ------------------------------

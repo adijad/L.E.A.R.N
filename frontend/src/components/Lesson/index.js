@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'; // If using Font Awesome
+import { faVolumeUp } from '@fortawesome/free-solid-svg-icons'; // Example volume up icon
+
 import axios from "axios";
 import {
     LineChart,
@@ -27,6 +30,7 @@ import {
 } from "recharts";
 
 import "./index.css";
+import TTSSection from "./tts";
 import languageOptions from "../../constants/languageOptions";
 
 
@@ -165,9 +169,17 @@ const GraphRenderer = ({ graph }) => {
 /* -----------------------------------------------
    2) RENDER CONTENT RECURSIVELY
 ----------------------------------------------- */
-const renderContent = (content) => {
+const renderContent = (content, currentLanguage) => {
     if (typeof content === "string" || typeof content === "number") {
-        return <p className="font-bold text-gray-700">{content}</p>;
+        return (
+            <div className="tts-container">
+                <div className="tts-text-content">
+                    <p className="font-bold text-gray-700">{content}</p>
+                </div>
+                {/* Assuming TTSSection takes the text as a prop */}
+                <TTSSection text={content.toString()}/>
+            </div>
+        );
     }
 
     if (Array.isArray(content)) {
@@ -190,7 +202,12 @@ const renderContent = (content) => {
                 return (
                     <div key={key} className="mb-6">
                         <h3 className="text-2xl font-semibold text-blue-800">{item.heading}</h3>
-                        <p className="font-bold text-gray-700">{item.description}</p>
+                        <div className="tts-container">
+                            <div className="tts-text-content">
+                                <p className="font-bold text-gray-700">{item.description}</p>
+                            </div>
+                            <TTSSection text={item.description.toString()} />
+                        </div>
                     </div>
                 );
             }
@@ -205,7 +222,12 @@ const renderContent = (content) => {
 
             return (
                 <div key={key} className="content-section mb-6">
-                    <p className="font-bold text-gray-700">{item}</p>
+                    <div className="tts-container">
+                        <div className="tts-text-content">
+                            <p className="font-bold text-gray-700">{item}</p>
+                        </div>
+                        <TTSSection text={item.toString()} />
+                    </div>
                 </div>
             );
         });
@@ -502,8 +524,20 @@ const InteractiveRenderer = ({ interactive }) => {
 
 const LessonPage = () => {
     const { state } = useLocation();
-    const { topic, lesson_name, toc, email: stateEmail, language: stateLanguage } = state || {};
-    const [currentLanguage, setCurrentLanguage] = useState(stateLanguage || "English_USA");
+    const navigate = useNavigate();
+    const {
+        topic,
+        lesson_name,
+        toc: stateToc,
+        email: stateEmail,
+        language: stateLanguage,
+    } = state || {};
+    const [currentLanguage, setCurrentLanguage] = useState(
+        stateLanguage || "English_USA"
+    );
+    const [toc, setCurrentToC] = useState(stateToc);
+
+    //const [translatedToc, setTranslatedToc] = useState(toc || []); // State for translated TOC
     const email = stateEmail || localStorage.getItem("userEmail");
     const [references, setReferences] = useState([]);
     const [lesson, setLesson] = useState(null);
@@ -516,52 +550,104 @@ const LessonPage = () => {
     const [nextDifficulty, setNextDifficulty] = useState('');
     const [selectedAnswers, setSelectedAnswers] = useState({});
     const [quizFeedbacks, setQuizFeedbacks] = useState({});
+    const [visitedLessons, setVisitedLessons] = useState([]);
 
-    // Helper function to map a language code to its user-friendly label.
+    //loading states
+    const [nextLessonLoad, setNextLessonLoad] = useState(false);
+    const [translateLoad, setTranslateLoad] = useState(false);
+
+
     const getLabelFromCode = (code) => {
         const lang = languageOptions.find((l) => l.code === code);
         return lang ? lang.label : "English (USA)";
     };
 
+    //translate
+    const translateLesson = async () => {
+        setLoading(true)
+        try {
+            // Call the /translate API with the current lesson JSON
+            const response = await axios.post(
+                `http://127.0.0.1:8000/translate?language=${encodeURIComponent(
+                    getLabelFromCode(currentLanguage)
+                )}`,
+                { lesson }, // Payload structure: { lesson: { ... } }
+                { headers: { "Content-Type": "application/json" } }
+            );
+            // Update lesson with translated lesson JSON.
+            if (response.data.lesson) {
+                console.log(response.data.lesson);
+                setLesson(response.data.lesson);
+            }
+        } catch (error) {
+            console.error("Error translating lesson", error);
+        }
+        finally {
+            setLoading(false);
+        }
+    };
+
+
+    const translateToC = async () => {
+        try {
+            // Call the /translate API with the current lesson JSON
+            const response = await axios.post(
+                `http://127.0.0.1:8000/translate?language=${encodeURIComponent(
+                    getLabelFromCode(currentLanguage)
+                )}`,
+                { toc }, // Payload structure: { lesson: { ... } }
+                { headers: { "Content-Type": "application/json" } }
+            );
+            // Update lesson with translated lesson JSON.
+            if (response.data.toc) {
+                console.log(response.data.toc);
+                setCurrentToC(response.data.toc);
+            }
+        } catch (error) {
+            console.error("Error translating lesson", error);
+        }
+    };
+
+    const fetchLesson = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.post(
+                `http://127.0.0.1:8000/generate_lesson?language=${encodeURIComponent(
+                    getLabelFromCode(currentLanguage)
+                )}`,
+                { topic, lesson_name, toc },
+                { headers: { "Content-Type": "application/json" } }
+            );
+
+            const lessonData = response.data.lesson.lesson || response.data.lesson;
+            const referencesData = response.data.lesson.references || [];
+
+            setLesson(lessonData);
+            setReferences(referencesData);
+
+            const index = toc.findIndex((item) => item === lesson_name);
+            setCurrentLessonIndex(index);
+
+            await axios.post("http://localhost:8080/api/auth/progress/save", {
+                email,
+                topic,
+                lessonName: lesson_name,
+                tocIndex: index,
+                completed: false,
+                lessonJson: JSON.stringify(lessonData),
+            });
+        } catch (err) {
+            console.error(err);
+            setError("Failed to load lesson.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchLesson = async () => {
-            try {
-                setLoading(true);
-                const response = await axios.post(
-                    `http://127.0.0.1:8000/generate_lesson?language=${encodeURIComponent(getLabelFromCode(currentLanguage))}`,
-                    { topic, lesson_name, toc },
-                    { headers: { "Content-Type": "application/json" } }
-                );
+        if (lesson_name) fetchLesson();
+    }, [lesson_name]);
 
-                const lessonData = response.data.lesson.lesson || response.data.lesson;
-                const referencesData = response.data.lesson.references || [];
-
-                setLesson(lessonData);
-                setReferences(referencesData);
-
-                const index = toc.findIndex(item => item === lesson_name);
-                setCurrentLessonIndex(index);
-
-                await axios.post("http://localhost:8080/api/auth/progress/save", {
-                    email,
-                    topic,
-                    lessonName: lesson_name,
-                    tocIndex: index,
-                    completed: false,
-                    lessonJson: JSON.stringify(lessonData),
-                });
-
-            } catch (err) {
-                console.error(err);
-                setError("Failed to load lesson.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (topic && lesson_name && toc) fetchLesson();
-    }, [topic, lesson_name, toc, email, currentLanguage]);
 
     // ---------------------------------
     // 2) When the language changes, translate the loaded lesson.
@@ -570,25 +656,19 @@ const LessonPage = () => {
         // Only translate if a lesson exists
         if (!lesson) return;
 
-        const translateLesson = async () => {
-            try {
-                // Call the /translate API with the current lesson JSON
-                const response = await axios.post(
-                    `http://127.0.0.1:8000/translate?language=${encodeURIComponent(getLabelFromCode(currentLanguage))}`,
-                    { lesson }, // Payload structure: { lesson: { ... } }
-                    { headers: { "Content-Type": "application/json" } }
-                );
-                // Update lesson with translated lesson JSON.
-                if (response.data) {
-                    setLesson(response.data);
-                }
-            } catch (error) {
-                console.error("Error translating lesson", error);
-            }
-        };
-
         translateLesson();
+        translateToC();
     }, [currentLanguage]); // Runs whenever language changes
+
+
+
+
+    const handleCourseNavigation = (item) => {
+        const newIndex = toc.findIndex(t => t === item);
+        if (newIndex !== -1) {
+            navigate(`/home/lesson`, { state: { topic, lesson_name: item, toc, language: currentLanguage } });
+        }
+    };
 
     const handleQuizOptionClick = (quizIndex, option) => {
         if (!lesson?.quizzes) return;
@@ -622,6 +702,12 @@ const LessonPage = () => {
         setQuizScore(score);
 
         if (score > 0) {
+            setVisitedLessons(prev => {
+                if (!prev.includes(lessonName)) {
+                    return [...prev, lessonName];
+                }
+                return prev;
+            });
             await axios.post("http://localhost:8080/api/auth/progress/save", {
                 email,
                 topic,
@@ -641,13 +727,24 @@ const LessonPage = () => {
 
     const handleNextLesson = async () => {
         const nextLessonName = toc[currentLessonIndex + 1];
+        if (nextLessonName) {
+            navigate(`/home/lesson`, { state: { topic, lesson_name: nextLessonName, toc, language: currentLanguage } });
+        }
         try {
-            setLoading(true);
-            const response = await axios.post("http://127.0.0.1:8000/generate_lesson", {
-                topic,
-                lesson_name: nextLessonName,
-                toc
-            });
+            // setLoading(true);
+            setNextLessonLoad(true);
+            const response = await axios.post(
+                `http://127.0.0.1:8000/generate_lesson?language=${encodeURIComponent(
+                    getLabelFromCode(currentLanguage)
+                )}`,
+                {
+                    topic,
+                    lesson_name: nextLessonName,
+                    toc,
+                },
+                { headers: { "Content-Type": "application/json" } }
+            );
+
 
             setLesson(response.data.lesson.lesson || response.data.lesson);
             setCurrentLessonIndex(prev => prev + 1);
@@ -659,33 +756,171 @@ const LessonPage = () => {
             console.error("Failed to load next lesson:", err);
             setError("Failed to load next lesson.");
         } finally {
-            setLoading(false);
+            setNextLessonLoad(false);
+            // setLoading(false);
         }
     };
 
-    if (loading) return <div className="lesson-loading">📚 Loading lesson...</div>;
+    if (loading)
+        return (
+            <div className="loader-layout">
+                <div className="loader-container">
+                    <svg className="loaderSVG" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="15" cy="15" r="16" fill="#3b82f6">
+                            <animate
+                                attributeName="cy"
+                                values="15;7;15;15"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                calcMode="spline"
+                                repeatCount="indefinite"
+                                begin="0s"
+                            />
+                            <animate
+                                attributeName="ry"
+                                values="8;8;6;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0s"
+                            />
+                            <animate
+                                attributeName="rx"
+                                values="8;8;9;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0s"
+                            />
+                            <animate
+                                attributeName="fill"
+                                values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                dur="1.6s"
+                                repeatCount="indefinite"
+                                begin="0s"
+                            />
+                        </circle>
+
+                        <circle cx="60" cy="15" r="16" fill="#3b82f6">
+                            <animate
+                                attributeName="cy"
+                                values="15;7;15;15"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                calcMode="spline"
+                                repeatCount="indefinite"
+                                begin="0.4s"
+                            />
+                            <animate
+                                attributeName="ry"
+                                values="8;8;6;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.4s"
+                            />
+                            <animate
+                                attributeName="rx"
+                                values="8;8;9;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.4s"
+                            />
+                            <animate
+                                attributeName="fill"
+                                values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                dur="1.6s"
+                                repeatCount="indefinite"
+                                begin="0.4s"
+                            />
+                        </circle>
+
+                        <circle cx="105" cy="15" r="16" fill="#3b82f6">
+                            <animate
+                                attributeName="cy"
+                                values="15;7;15;15"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                calcMode="spline"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="ry"
+                                values="8;8;6;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="rx"
+                                values="8;8;9;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="fill"
+                                values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                dur="1.6s"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                        </circle>
+                        <circle cx="150" cy="15" r="16" fill="#3b82f6">
+                            <animate
+                                attributeName="cy"
+                                values="15;7;15;15"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                calcMode="spline"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="ry"
+                                values="8;8;6;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="rx"
+                                values="8;8;9;8"
+                                dur="1.6s"
+                                keyTimes="0;0.3;0.6;1"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                            <animate
+                                attributeName="fill"
+                                values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                dur="1.6s"
+                                repeatCount="indefinite"
+                                begin="0.8s"
+                            />
+                        </circle>
+                    </svg>
+                </div>
+            </div>
+        );
+
+    //----------------
+
     if (error) return <div className="lesson-error">⚠️ {error}</div>;
 
     return (
-        <div className="lesson-layout">
-            {/* Sidebar */}
-            <div className="lesson-header">
-                <div className="lesson-language-selector">
-                    <label htmlFor="lesson-language-select">Language:</label>
-                    <select
-                        id="lesson-language-select"
-                        value={currentLanguage}
-                        onChange={(e) => setCurrentLanguage(e.target.value)}
-                    >
-                        {languageOptions.map((lang) => (
-                            <option key={lang.code} value={lang.code}>
-                                {lang.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-            <aside className="lesson-sidebar">
+        <div className="main-content-area">
+            {/* Left Sidebar (Course Progress) */}
+            <aside className="lesson-sidebar-left">
                 <h3>Course Progress</h3>
                 <ul className="lesson-toc">
                     {toc?.map((item, index) => (
@@ -701,11 +936,25 @@ const LessonPage = () => {
                     ))}
                 </ul>
             </aside>
-            <label htmlFor="lesson-language-select">Language:</label>
 
-            {/* Main Content */}
+            {/* Main Lesson Content */}
             <div className="lesson-container">
+                {/* Language Selector (Moved to top of lesson) */}
                 {/* Header */}
+                <div className="lesson-language-selector">
+                    <label htmlFor="lesson-language-select">Language:</label>
+                    <select
+                        id="lesson-language-select"
+                        value={currentLanguage}
+                        onChange={(e) => setCurrentLanguage(e.target.value)}
+                    >
+                        {languageOptions.map((lang) => (
+                            <option key={lang.code} value={lang.code}>
+                                {lang.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
                 <h1 className="lesson-title">{lesson?.title}</h1>
 
@@ -794,7 +1043,7 @@ const LessonPage = () => {
                     </div>
                 )}
 
-                {lesson?.graphs && <GraphRenderer graph={lesson.graphs} />}
+                {lesson?.graphs && <GraphRenderer graph={lesson.graphs}/>}
 
                 {/* Interactive Activities */}
                 {lesson?.interactives && (
@@ -908,6 +1157,36 @@ const LessonPage = () => {
                     </div>
                 )}
             </div>
+
+            {/* Right Sidebar (Full Course List) */}
+            <aside className="lesson-sidebar-right">
+                <h3>Course Content</h3>
+                <ul className="course-toc">
+                    {toc?.map((item, index) => (
+                        <li
+                            key={index}
+                            className={`${item === lessonName ? 'current' : visitedLessons.includes(item) ? 'visited' : ''}`}
+                            onClick={() => handleCourseNavigation(item)}
+                        >
+                            <a href="#">{item}</a> {/* Added an anchor for better clickability */}
+                        </li>
+                    ))}
+                </ul>
+                <div className="lesson-language-selector">
+                    <label htmlFor="lesson-language-select">Language:</label>
+                    <select
+                        id="lesson-language-select"
+                        value={currentLanguage}
+                        onChange={(e) => setCurrentLanguage(e.target.value)}
+                    >
+                        {languageOptions.map((lang) => (
+                            <option key={lang.code} value={lang.code}>
+                                {lang.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </aside>
         </div>
     );
 };
