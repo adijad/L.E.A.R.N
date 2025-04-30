@@ -46,6 +46,9 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "RAG_code"))
 )
 
+# In-memory storage for chatbot context
+chat_context_store = {}
+
 # ------------------------------
 load_dotenv()
 # ------------------------------
@@ -101,6 +104,27 @@ relevance_prompt = ChatPromptTemplate.from_messages([
     )
 ])
 relevance_chain = relevance_prompt | moderation_llm
+
+# ------------------------------
+# Chatbot Relevance LLM
+# ------------------------------
+
+chatbot_relevance_prompt = ChatPromptTemplate.from_messages([
+    SystemMessagePromptTemplate.from_template(
+        "You are a strict content filter for an educational assistant.\n"
+        "Check if the user's question is relevant to the topic and selected paragraph.\n"
+        "Respond exactly in this format:\n"
+        "Category: <Relevant or Off-topic>\n"
+        "Reason: <short reason>"
+    ),
+    HumanMessagePromptTemplate.from_template(
+        "Topic: {topic}\n\n"
+        "Paragraph: {paragraph}\n\n"
+        "Question: {question}"
+    )
+])
+chatbot_relevance_chain = chatbot_relevance_prompt | moderation_llm
+
 
 # ------------------------------
 # FastAPI Setup
@@ -229,6 +253,15 @@ class LessonRequest(BaseModel):
     topic: str
     lesson_name: str
     toc: List[str]
+
+class ContextRequest(BaseModel):
+    topic: str
+    toc: List[str]
+    selected_text: str
+
+class ChatRequest(BaseModel):
+    topic: str
+    question: str
 
 # ------------------------------
 # Utility Functions
@@ -368,6 +401,56 @@ def save_lesson(topic, lesson_name, lesson_data):
         json.dump(lesson_data, f, indent=2)
     print(f" Lesson saved to {filepath}")
 
+
+# ------------------------------
+# Step 6: Chatbot Question-Answering logic
+# ------------------------------
+
+def check_question_relevance(topic: str, paragraph: str, question: str) -> bool:
+    try:
+        result = chatbot_relevance_chain.invoke({
+            "topic": topic,
+            "paragraph": paragraph,
+            "question": question
+        })
+        match = re.search(r"Category:\s*(\w+)", result.content)
+        return match and match.group(1).lower() == "relevant"
+    except Exception as e:
+        print(f"❌ Relevance check failed: {e}")
+        return False
+
+def generate_answer_directly(topic: str, selected_text: str, toc: List[str], question: str) -> str:
+    toc_str = "\n".join(f"- {item}" for item in toc)
+    prompt = f"""
+You are a helpful educational tutor. The student is learning about "{topic}".
+
+Here is the paragraph the student selected from the lesson:
+\"\"\"{selected_text}\"\"\"
+
+The full lesson covers:
+{toc_str}
+
+The student asked:
+"{question}"
+
+Answer using ONLY the above context. Be clear and helpful.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
+@app.post("/store_context")
+async def store_context(request: ContextRequest):
+    chat_context_store[request.topic] = {
+        "selected_text": request.selected_text,
+        "toc": request.toc
+    }
+    return {"status": "Context stored successfully."}
+
+
 # ------------------------------
 # FastAPI Endpoints
 # ------------------------------
@@ -495,6 +578,48 @@ async def generate_lesson(
     save_lesson(request.topic, request.lesson_name, lesson_data)
     return {"lesson": lesson_data}
 
+# ------------------------------
+# Step 5: Chatbot Question-Answering
+# ------------------------------
+
+@app.post("/chatbot_qa")
+async def chatbot_qa(request: ChatRequest):
+    context = chat_context_store.get(request.topic)
+    if not context:
+        raise HTTPException(status_code=400, detail="No stored context found for this topic.")
+
+    selected_text = context.get("selected_text", "")
+    toc = context.get("toc", [])
+    question = request.question.strip()
+
+    # ✅ Input validation
+    if not question or len(question) < 3 or re.fullmatch(r"[\W\d\s]+", question):
+        return {
+            "status": "invalid",
+            "message": "Please enter a meaningful question."
+        }
+
+    if not selected_text or not toc:
+        raise HTTPException(status_code=400, detail="Incomplete context.")
+
+    # Step 1: Relevance filter
+    is_relevant = check_question_relevance(request.topic, selected_text, request.question)
+    if not is_relevant:
+        return {
+            "status": "off-topic",
+            "message": f"Please ask something relevant to the current lesson on '{request.topic}'."
+        }
+
+    # Step 2: Generate answer
+    answer = generate_answer_directly(request.topic, selected_text, toc, request.question)
+    return {
+        "status": "ok",
+        "answer": answer
+    }
+
+# ------------------------------
+# Step 5: Generate Translated Lesson
+# ------------------------------
 
 @app.post("/translate")
 async def translate(payload: dict, language: Language = Language.English_USA):
@@ -554,8 +679,9 @@ async def translate(payload: dict, language: Language = Language.English_USA):
 
     return translated_json
 
-
-
+# ------------------------------
+# Step 6: Generate TTS Audio
+# ------------------------------
 
 @app.post("/tts")
 async def tts_generate(payload: TTSRequest, language: Language = Language.English_USA):
