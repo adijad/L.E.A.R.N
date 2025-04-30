@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'; // If using Font Awesome
+import { faVolumeUp } from '@fortawesome/free-solid-svg-icons'; // Example volume up icon
+
 import axios from "axios";
 import {
     LineChart,
@@ -29,6 +32,7 @@ import {
 import "./index.css";
 import TTSSection from "./tts";
 import languageOptions from "../../constants/languageOptions";
+
 
 /* -----------------------------------------------
    1) GRAPH RENDERING (unchanged logic)
@@ -167,9 +171,15 @@ const GraphRenderer = ({ graph }) => {
 ----------------------------------------------- */
 const renderContent = (content, currentLanguage) => {
     if (typeof content === "string" || typeof content === "number") {
-        return (<p className="font-bold text-gray-700">
-            {content} <TTSSection text={content.toString()} />
-        </p>);
+        return (
+            <div className="tts-container">
+                <div className="tts-text-content">
+                    <p className="font-bold text-gray-700">{content}</p>
+                </div>
+                {/* Assuming TTSSection takes the text as a prop */}
+                <TTSSection text={content.toString()}/>
+            </div>
+        );
     }
 
     if (Array.isArray(content)) {
@@ -177,7 +187,7 @@ const renderContent = (content, currentLanguage) => {
             <div className="pl-4">
                 {content.map((item, index) => (
                     <div key={index} className="mb-6">
-                        {renderContent(item, currentLanguage)}
+                        {renderContent(item)}
                     </div>
                 ))}
             </div>
@@ -187,33 +197,37 @@ const renderContent = (content, currentLanguage) => {
     if (typeof content === "object" && content !== null) {
         return Object.keys(content).map((key) => {
             const item = content[key];
-            
 
             if (item.heading && item.description) {
                 return (
                     <div key={key} className="mb-6">
-                        <h3 className="text-2xl font-semibold text-blue-800">
-                            {item.heading}
-                        </h3>
-                        <p className="font-bold text-gray-700">{item.description}</p>
-                        <TTSSection text={item.heading.toString() + item.description.toString()} currentLanguage={currentLanguage}/>
+                        <h3 className="text-2xl font-semibold text-blue-800">{item.heading}</h3>
+                        <div className="tts-container">
+                            <div className="tts-text-content">
+                                <p className="font-bold text-gray-700">{item.description}</p>
+                            </div>
+                            <TTSSection text={item.description.toString()} />
+                        </div>
                     </div>
                 );
             }
 
-            if (typeof item === "object" || Array.isArray(item)) {
+            if (typeof item === 'object' || Array.isArray(item)) {
                 return (
                     <div key={key} className="content-section mb-6">
-                        <div className="font-bold text-xl">{renderContent(item, currentLanguage)}</div>
-                        <TTSSection text={item.toString()} currentLanguage={currentLanguage}/>
+                        <div className="font-bold text-xl">{renderContent(item)}</div>
                     </div>
                 );
             }
 
             return (
                 <div key={key} className="content-section mb-6">
-                    <p className="font-bold text-gray-700">{item}</p>
-                    <TTSSection text={item.toString()} currentLanguage={currentLanguage}/>
+                    <div className="tts-container">
+                        <div className="tts-text-content">
+                            <p className="font-bold text-gray-700">{item}</p>
+                        </div>
+                        <TTSSection text={item.toString()} />
+                    </div>
                 </div>
             );
         });
@@ -221,155 +235,6 @@ const renderContent = (content, currentLanguage) => {
 
     return null;
 };
-
-// Helper: Format snake_case key to Capitalized Words.
-// const formatKey = (key) =>
-//     key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-
-// ==========================
-// CollapsibleSection Component
-// ==========================
-// const CollapsibleSection = ({ sectionKey, value, level }) => {
-//     const isTopLevel = level === 1;
-//     const [open, setOpen] = useState(true);
-
-//     // Compute heading text.
-//     const heading = formatKey(sectionKey);
-//     const HeaderTag = `h${Math.min(level + 1, 5)}`;
-
-//     // Decide if we display TTS icon for top-level sections.
-//     let ttsText = "";
-//     if (typeof value === "string" || typeof value === "number") {
-//         ttsText = value.toString();
-//     } else if (
-//         Array.isArray(value) &&
-//         value.every((item) => typeof item === "string" || typeof item === "number")
-//     ) {
-//         ttsText = value.join(". ");
-//     }
-//     const showTTS = isTopLevel && ttsText.length > 0;
-
-//     return (
-//         <div
-//             className={`mb-6 ${isTopLevel ? "rounded-xl shadow-md p-4 bg-white border" : ""
-//                 }`}
-//         >
-//             {isTopLevel ? (
-//                 <div
-//                     className="flex items-center justify-between cursor-pointer mb-2"
-//                     onClick={() => setOpen((prev) => !prev)}
-//                 >
-//                     <div className="flex items-center gap-2">
-//                         {showTTS && (
-//                             <span onClick={(e) => e.stopPropagation()}>
-//                                 <TTSSection text={`${heading}. ${ttsText}`} />
-//                             </span>
-//                         )}
-//                         <HeaderTag
-//                             className={`font-bold ${isTopLevel
-//                                     ? "text-2xl text-blue-800"
-//                                     : level === 2
-//                                         ? "text-xl text-purple-700"
-//                                         : "text-lg text-green-800"
-//                                 }`}
-//                         >
-//                             {heading}
-//                         </HeaderTag>
-//                     </div>
-//                     <span className="text-gray-500 text-sm select-none">
-//                         {open ? "▾" : "▸"}
-//                     </span>
-//                 </div>
-//             ) : (
-//                 <div className="flex items-center gap-2 mb-2">
-//                     {showTTS && (
-//                         <span onClick={(e) => e.stopPropagation()}>
-//                             <TTSSection text={`${heading}. ${ttsText}`} />
-//                         </span>
-//                     )}
-//                     <HeaderTag
-//                         className={`font-bold ${level === 2 ? "text-xl text-purple-700" : "text-lg text-green-800"
-//                             }`}
-//                     >
-//                         {heading}
-//                     </HeaderTag>
-//                 </div>
-//             )}
-
-//             {(!isTopLevel || open) && (
-//                 <div className="ml-4 mt-2">{renderContent(value, level + 1)}</div>
-//             )}
-//         </div>
-//     );
-// };
-
-// ==========================
-// renderContent Function
-// ==========================
-// const renderContent = (content, level = 1) => {
-//     // 1. Primitives → render as paragraph.
-//     if (typeof content === "string" || typeof content === "number") {
-//         return <p className="text-gray-700 italic">{content}</p>;
-//     }
-
-//     // 2. Arrays:
-//     if (Array.isArray(content)) {
-//         // If array of primitives → render as an ordered list.
-//         if (
-//             content.every(
-//                 (item) => typeof item === "string" || typeof item === "number"
-//             )
-//         ) {
-//             return (
-//                 <ol className="list-decimal list-inside ml-6 text-gray-800">
-//                     {content.map((item, idx) => (
-//                         <li key={idx}>{item}</li>
-//                     ))}
-//                 </ol>
-//             );
-//         }
-//         // Otherwise, assume array of objects.
-//         return (
-//             <>
-//                 {content.map((item, idx) => (
-//                     <div key={idx} className="ml-4 mb-4 border-l-2 border-gray-200 pl-4">
-//                         {renderContent(item, level + 1)}
-//                     </div>
-//                 ))}
-//             </>
-//         );
-//     }
-
-//     // 3. Objects: iterate over its keys.
-//     if (typeof content === "object" && content !== null) {
-//         return (
-//             <div>
-//                 {Object.entries(content).map(([key, value]) =>
-//                     level === 1 ? (
-//                         <CollapsibleSection
-//                             key={key}
-//                             sectionKey={key}
-//                             value={value}
-//                             level={level}
-//                         />
-//                     ) : (
-//                         <div key={key} className="mb-4">
-//                             <div className="flex items-center gap-2 mb-1">
-//                                 <h4 className="font-bold text-lg text-green-800">
-//                                     {formatKey(key)}
-//                                 </h4>
-//                             </div>
-//                             <div className="ml-4">{renderContent(value, level + 1)}</div>
-//                         </div>
-//                     )
-//                 )}
-//             </div>
-//         );
-//     }
-
-//     // 4. Fallback.
-//     return null;
-// };
 
 /* -----------------------------------------------
    3) INTERACTIVE COMPONENTS (actual logic)
@@ -659,6 +524,7 @@ const InteractiveRenderer = ({ interactive }) => {
 
 const LessonPage = () => {
     const { state } = useLocation();
+    const navigate = useNavigate();
     const {
         topic,
         lesson_name,
@@ -670,24 +536,27 @@ const LessonPage = () => {
         stateLanguage || "English_USA"
     );
     const [toc, setCurrentToC] = useState(stateToc);
+
+    //const [translatedToc, setTranslatedToc] = useState(toc || []); // State for translated TOC
     const email = stateEmail || localStorage.getItem("userEmail");
     const [references, setReferences] = useState([]);
     const [lesson, setLesson] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
     const [lessonName, setLessonName] = useState(lesson_name);
     const [showScorePopup, setShowScorePopup] = useState(false);
     const [quizScore, setQuizScore] = useState(0);
-    const [nextDifficulty, setNextDifficulty] = useState("");
+    const [nextDifficulty, setNextDifficulty] = useState('');
     const [selectedAnswers, setSelectedAnswers] = useState({});
     const [quizFeedbacks, setQuizFeedbacks] = useState({});
+    const [visitedLessons, setVisitedLessons] = useState([]);
 
     //loading states
     const [nextLessonLoad, setNextLessonLoad] = useState(false);
     const [translateLoad, setTranslateLoad] = useState(false);
 
-    // Helper function to map a language code to its user-friendly label.
+
     const getLabelFromCode = (code) => {
         const lang = languageOptions.find((l) => l.code === code);
         return lang ? lang.label : "English (USA)";
@@ -695,7 +564,7 @@ const LessonPage = () => {
 
     //translate
     const translateLesson = async () => {
-        setLoading(true);
+        setLoading(true)
         try {
             // Call the /translate API with the current lesson JSON
             const response = await axios.post(
@@ -712,10 +581,12 @@ const LessonPage = () => {
             }
         } catch (error) {
             console.error("Error translating lesson", error);
-        } finally {
+        }
+        finally {
             setLoading(false);
         }
     };
+
 
     const translateToC = async () => {
         try {
@@ -737,7 +608,6 @@ const LessonPage = () => {
         }
     };
 
-    //fetch lesson
     const fetchLesson = async () => {
         try {
             setLoading(true);
@@ -778,6 +648,7 @@ const LessonPage = () => {
         if (lesson_name) fetchLesson();
     }, [lesson_name]);
 
+
     // ---------------------------------
     // 2) When the language changes, translate the loaded lesson.
     // ---------------------------------
@@ -789,21 +660,28 @@ const LessonPage = () => {
         translateToC();
     }, [currentLanguage]); // Runs whenever language changes
 
+
+
+
+    const handleCourseNavigation = (item) => {
+        const newIndex = toc.findIndex(t => t === item);
+        if (newIndex !== -1) {
+            navigate(`/home/lesson`, { state: { topic, lesson_name: item, toc, language: currentLanguage } });
+        }
+    };
+
     const handleQuizOptionClick = (quizIndex, option) => {
         if (!lesson?.quizzes) return;
 
-        const quizzes = Array.isArray(lesson.quizzes)
-            ? lesson.quizzes
-            : [lesson.quizzes];
+        const quizzes = Array.isArray(lesson.quizzes) ? lesson.quizzes : [lesson.quizzes];
         const correctAnswer = quizzes[quizIndex]?.answer;
 
         if (!correctAnswer) return;
 
-        setSelectedAnswers((prev) => ({ ...prev, [quizIndex]: option }));
-        setQuizFeedbacks((prev) => ({
+        setSelectedAnswers(prev => ({ ...prev, [quizIndex]: option }));
+        setQuizFeedbacks(prev => ({
             ...prev,
-            [quizIndex]:
-                option === correctAnswer ? "✅ Correct!" : "❌ Incorrect, try again!",
+            [quizIndex]: option === correctAnswer ? "✅ Correct!" : "❌ Incorrect, try again!"
         }));
     };
 
@@ -813,9 +691,7 @@ const LessonPage = () => {
             return;
         }
 
-        const quizzes = Array.isArray(lesson.quizzes)
-            ? lesson.quizzes
-            : [lesson.quizzes];
+        const quizzes = Array.isArray(lesson.quizzes) ? lesson.quizzes : [lesson.quizzes];
         let correct = 0;
 
         quizzes.forEach((quiz, index) => {
@@ -826,6 +702,12 @@ const LessonPage = () => {
         setQuizScore(score);
 
         if (score > 0) {
+            setVisitedLessons(prev => {
+                if (!prev.includes(lessonName)) {
+                    return [...prev, lessonName];
+                }
+                return prev;
+            });
             await axios.post("http://localhost:8080/api/auth/progress/save", {
                 email,
                 topic,
@@ -836,12 +718,18 @@ const LessonPage = () => {
             });
         }
 
-        setNextDifficulty(score < 50 ? "Easy" : score <= 80 ? "Medium" : "Hard");
+        setNextDifficulty(
+            score < 50 ? 'Easy' :
+                score <= 80 ? 'Medium' : 'Hard'
+        );
         setShowScorePopup(score > 0);
     };
 
     const handleNextLesson = async () => {
         const nextLessonName = toc[currentLessonIndex + 1];
+        if (nextLessonName) {
+            navigate(`/home/lesson`, { state: { topic, lesson_name: nextLessonName, toc, language: currentLanguage } });
+        }
         try {
             // setLoading(true);
             setNextLessonLoad(true);
@@ -857,11 +745,13 @@ const LessonPage = () => {
                 { headers: { "Content-Type": "application/json" } }
             );
 
+
             setLesson(response.data.lesson.lesson || response.data.lesson);
-            setCurrentLessonIndex((prev) => prev + 1);
+            setCurrentLessonIndex(prev => prev + 1);
             setSelectedAnswers({});
             setQuizFeedbacks({});
             setLessonName(nextLessonName);
+
         } catch (err) {
             console.error("Failed to load next lesson:", err);
             setError("Failed to load next lesson.");
@@ -871,19 +761,11 @@ const LessonPage = () => {
         }
     };
 
-    // if (loading) return <div className="lesson-loading">📚 Loading lesson...</div>;
-
-    //------------ Fancy Loading ---------------------------
-
     if (loading)
         return (
             <div className="loader-layout">
                 <div className="loader-container">
-                    <svg
-                        className="loaderSVG"
-                        viewBox="0 0 120 30"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
+                    <svg className="loaderSVG" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="15" cy="15" r="16" fill="#3b82f6">
                             <animate
                                 attributeName="cy"
@@ -1036,10 +918,31 @@ const LessonPage = () => {
     if (error) return <div className="lesson-error">⚠️ {error}</div>;
 
     return (
-        <div className="lesson-layout">
-            {/* Sidebar */}
-            <div className="lesson-header">
+        <div className="main-content-area">
+            {/* Left Sidebar (Course Progress) */}
+            <aside className="lesson-sidebar-left">
+                <h3>Course Progress</h3>
+                <ul className="lesson-toc">
+                    {toc?.map((item, index) => (
+                        <li
+                            key={index}
+                            className={
+                                index < currentLessonIndex ? "toc-visited" :
+                                    index === currentLessonIndex ? "toc-current" : "toc-locked"
+                            }
+                        >
+                            {item}
+                        </li>
+                    ))}
+                </ul>
+            </aside>
+
+            {/* Main Lesson Content */}
+            <div className="lesson-container">
+                {/* Language Selector (Moved to top of lesson) */}
+                {/* Header */}
                 <div className="lesson-language-selector">
+                    <label htmlFor="lesson-language-select">Language:</label>
                     <select
                         id="lesson-language-select"
                         value={currentLanguage}
@@ -1052,30 +955,6 @@ const LessonPage = () => {
                         ))}
                     </select>
                 </div>
-            </div>
-            <aside className="lesson-sidebar">
-                <h3>Course Progress</h3>
-                <ul className="lesson-toc">
-                    {toc?.map((item, index) => (
-                        <li
-                            key={index}
-                            className={
-                                index < currentLessonIndex
-                                    ? "toc-visited"
-                                    : index === currentLessonIndex
-                                        ? "toc-current"
-                                        : "toc-locked"
-                            }
-                        >
-                            {item}
-                        </li>
-                    ))}
-                </ul>
-            </aside>
-
-            {/* Main Content */}
-            <div className="lesson-container">
-                {/* Header */}
 
                 <h1 className="lesson-title">{lesson?.title}</h1>
 
@@ -1093,7 +972,7 @@ const LessonPage = () => {
                         <h3>📌 Previous Summary</h3>
                         <div className="summary-content">
                             {typeof lesson.previous_summary === "object"
-                                ? renderContent(lesson.previous_summary, currentLanguage)
+                                ? renderContent(lesson.previous_summary)
                                 : lesson.previous_summary}
                         </div>
                     </div>
@@ -1102,8 +981,10 @@ const LessonPage = () => {
                 {/* Main Content */}
                 {lesson?.content && (
                     <div className="lesson-content">
-                        <h3 className="mb-4">📖 Lesson Content</h3>
-                        <div className="content-grid">{renderContent(lesson.content, currentLanguage)}</div>
+                        <h3>📖 Lesson Content</h3>
+                        <div className="content-grid">
+                            {renderContent(lesson.content)}
+                        </div>
                     </div>
                 )}
 
@@ -1113,16 +994,16 @@ const LessonPage = () => {
                         <h3>📝 Knowledge Check</h3>
                         {(Array.isArray(lesson.quizzes)
                             ? lesson.quizzes
-                            : [lesson.quizzes]
-                        ).map((quiz, quizIndex) => (
+                            : [lesson.quizzes]).map((quiz, quizIndex) => (
                             <div key={quizIndex} className="quiz-item">
                                 <p className="quiz-question">{quiz.question}</p>
                                 <div className="quiz-options">
                                     {quiz.options?.map((option, optIndex) => (
                                         <div
                                             key={optIndex}
-                                            className={`quiz-option ${selectedAnswers[quizIndex] === option ? "selected" : ""
-                                                }`}
+                                            className={`quiz-option ${
+                                                selectedAnswers[quizIndex] === option ? 'selected' : ''
+                                            }`}
                                             onClick={() => handleQuizOptionClick(quizIndex, option)}
                                         >
                                             {option}
@@ -1146,23 +1027,14 @@ const LessonPage = () => {
                         <div className="flashcard-grid">
                             {(Array.isArray(lesson.flashcards)
                                 ? lesson.flashcards
-                                : Object.entries(lesson.flashcards)
-                            ).map((flashcard, index) => (
+                                : Object.entries(lesson.flashcards)).map((flashcard, index) => (
                                 <div key={index} className="flashcard">
                                     <div className="flashcard-inner">
                                         <div className="flashcard-front">
-                                            <p>
-                                                {Array.isArray(flashcard)
-                                                    ? flashcard[0]
-                                                    : flashcard.term}
-                                            </p>
+                                            <p>{Array.isArray(flashcard) ? flashcard[0] : flashcard.term}</p>
                                         </div>
                                         <div className="flashcard-back">
-                                            <p>
-                                                {Array.isArray(flashcard)
-                                                    ? flashcard[1]
-                                                    : flashcard.definition}
-                                            </p>
+                                            <p>{Array.isArray(flashcard) ? flashcard[1] : flashcard.definition}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1171,7 +1043,7 @@ const LessonPage = () => {
                     </div>
                 )}
 
-                {lesson?.graphs && <GraphRenderer graph={lesson.graphs} />}
+                {lesson?.graphs && <GraphRenderer graph={lesson.graphs}/>}
 
                 {/* Interactive Activities */}
                 {lesson?.interactives && (
@@ -1186,7 +1058,7 @@ const LessonPage = () => {
                                         pairs: interactive.pairs || [],
                                         items: interactive.items || [],
                                         regions: interactive.regions || [],
-                                        hotspots: interactive.hotspots || [],
+                                        hotspots: interactive.hotspots || []
                                     }}
                                 />
                             ))
@@ -1209,15 +1081,16 @@ const LessonPage = () => {
                     </div>
                 )}
 
+
                 {/* References */}
                 {references.length > 0 && (
                     <div className="lesson-references">
                         <h3>📚 Reference Materials</h3>
                         <div className="references-grid">
                             {references
-                                .filter((ref) => typeof ref === "string")
+                                .filter(ref => typeof ref === 'string')
                                 .map((ref, index) => {
-                                    const cleanRef = ref.replace(/^Source:\s*/i, "");
+                                    const cleanRef = ref.replace(/^Source:\s*/i, '');
                                     return (
                                         <div key={index} className="reference-item">
                                             <img
@@ -1241,7 +1114,7 @@ const LessonPage = () => {
                 )}
 
                 {/* Navigation */}
-                {currentLessonIndex < toc?.length - 1 && !nextLessonLoad ? (
+                {currentLessonIndex < toc?.length - 1 && (
                     <div className="lesson-navigation">
                         <button
                             className="next-button"
@@ -1251,10 +1124,6 @@ const LessonPage = () => {
                                 ? "Continue Learning →"
                                 : "Check Progress →"}
                         </button>
-                    </div>
-                ) : (
-                    <div class="loading-wrapper">
-                        <div class="loader"></div>
                     </div>
                 )}
 
@@ -1267,21 +1136,16 @@ const LessonPage = () => {
                                 <div className="score-value">{quizScore.toFixed(0)}%</div>
                                 <p className="score-message">
                                     {quizScore === 100 ? (
-                                        <>
-                                            Perfect score! Ready for the next challenge at{" "}
-                                            <strong>{nextDifficulty}</strong> level!
-                                        </>
+                                        <>Perfect score! Ready for the next challenge
+                                            at <strong>{nextDifficulty}</strong> level!</>
                                     ) : (
-                                        <>
-                                            Great effort! Next lesson will be{" "}
-                                            <strong>{nextDifficulty}</strong> difficulty
-                                        </>
+                                        <>Great effort! Next lesson will
+                                            be <strong>{nextDifficulty}</strong> difficulty</>
                                     )}
                                 </p>
                             </div>
                             <button
-                                className={`proceed-button ${quizScore === 100 ? "success" : "warning"
-                                    }`}
+                                className={`proceed-button ${quizScore === 100 ? 'success' : 'warning'}`}
                                 onClick={() => {
                                     setShowScorePopup(false);
                                     handleNextLesson();
@@ -1293,10 +1157,41 @@ const LessonPage = () => {
                     </div>
                 )}
             </div>
+
+            {/* Right Sidebar (Full Course List) */}
+            <aside className="lesson-sidebar-right">
+                <h3>Course Content</h3>
+                <ul className="course-toc">
+                    {toc?.map((item, index) => (
+                        <li
+                            key={index}
+                            className={`${item === lessonName ? 'current' : visitedLessons.includes(item) ? 'visited' : ''}`}
+                            onClick={() => handleCourseNavigation(item)}
+                        >
+                            <a href="#">{item}</a> {/* Added an anchor for better clickability */}
+                        </li>
+                    ))}
+                </ul>
+                <div className="lesson-language-selector">
+                    <label htmlFor="lesson-language-select">Language:</label>
+                    <select
+                        id="lesson-language-select"
+                        value={currentLanguage}
+                        onChange={(e) => setCurrentLanguage(e.target.value)}
+                    >
+                        {languageOptions.map((lang) => (
+                            <option key={lang.code} value={lang.code}>
+                                {lang.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </aside>
         </div>
     );
 };
 
 // Helper function for content rendering
+
 
 export default LessonPage;
