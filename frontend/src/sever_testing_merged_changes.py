@@ -115,7 +115,7 @@ origins = [
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 # app = FastAPI()
@@ -174,11 +174,45 @@ class Language(Enum):
 
 
 LANGUAGE_TO_VOICE_ID = {
-    Language.English_USA: "kdmDKE6EkgrWrrykO9Qt",
+    Language.Arabic_Saudi_Arabia: "DPd861uv5p6zeVV94qOT",
+    Language.Arabic_UAE: "5Spsi3mCH9e7futpnGE5",
+    Language.Bulgarian: "kzrsjZhHCumKqmkJl486",
+    Language.Chinese: "bhJUNIXWQQ94l8eI2VUf",
+    Language.Croatian: "FXFcxnjikw0naYO1PPrU",
+    Language.Czech: "piwFF76q4v4xA9Wyxu1R",
+    Language.Danish: "6SjhOkgKPuHxm8q0eIyp",
+    Language.Dutch: "UNBIyLbtFB9k7FKW8wJv",
+    Language.English_Australia: "sai9UY7iXkRDSsXHR0bZ",
+    Language.English_Canada:"y26Xv4PQ7Ftbu1mfaEFY",
+    Language.English_USA: "lLM2bI7XZWLA1bTu2pPJ",
+    Language.English_UK: "jB2lPb5DhAX6l1TLkKXy",
+    Language.Filipino: "8eI7a7dYeWINkpv4iCLy",
+    Language.Finnish: "3OArekHEkHv5XvmZirVD",
+    Language.French_Canada: "j9RedbMRSNQ74PyikQwD",
     Language.French_France: "QbsdzCokdlo98elkq4Pc",
+    Language.German: "aduJlSmEKqbhRQAAMzV2",
+    Language.Greek: "wykE1oPxFaMrxdpOtFt6",
     Language.Hindi: "zgqefOY5FPQ3bB7OZTVR",
-    Language.Arabic_Saudi_Arabia: "DPd861uv5p6zeVV94qOT"
-    # Add more mappings here
+    Language.Hungarian: "yyPLNYHg3CvjlSdSOdLh",
+    Language.Indonesian: "k5eTzx1VYYlp6BE39Qrj",
+    Language.Italian: "uV2Bhcm1HwmAqPqkbjfl",
+    Language.Japanese: "MlgbiBnm4o8N3DaDzblH",
+    Language.Korean: "PDoCXqBQFGsvfO0hNkEs",
+    Language.Malay: "NpVSXJvYSdIbjOaMbShj",
+    Language.Norwegian: "4kCDY3HJwvO7Zp3con83",
+    Language.Polish: "XoHJ8hwSLOtb2sXYdAzv",
+    Language.Portuguese_Brazil: "6pQlwCgfwffNdI3jjzM6",
+    Language.Portuguese_Portugal: "aLFUti4k8YKvtQGXv0UO",
+    Language.Romanian: "sGcPNcpR5PikknzyXcy7",
+    Language.Russian: "2OdNfs9Z4GCMvoFiCavC",
+    Language.Slovak: "Zai7B4Aol2bJtneyq0L1",
+    Language.Spanish_Mexico: "sDh3eviBhiuHKi0MjTNq",
+    Language.Spanish_Spain: "ZCh4e9eZSUf41K4cmCEL",
+    Language.Swedish: "6eknYWL7D5Z4nRkDy15t",
+    Language.Tamil: "9Ats6C5UrhVXzgyVbnh3",
+    Language.Turkish: "Cwyzv9MeYGnlpio4bkSm",
+    Language.Ukrainian: "0ZQZuw8Sn4cU0rN1Tm2K",
+    Language.Vietnamese: "2vT8WlUXV1qBtgiLZdSb",
 }
 
 

@@ -11,7 +11,7 @@ body {
 /* ====================== Lesson Layout ====================== */
 .lesson-layout {
     display: flex;
-    max-width: 1000px; /* Adjust max width for lesson content */
+    max-width: fit-content; /* Adjust max width for lesson content */
     background: white;
     border-radius: 16px;
     padding: 40px;
@@ -95,6 +95,42 @@ body {
     color: #94a3b8;
     cursor: not-allowed;
 }
+
+.lesson-toc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 8px;
+    margin-bottom: 10px;
+  }
+  
+  .lesson-toc-header h3 {
+    margin: 5px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+  
+  .collapse-toggle {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 14px;
+    width: 30px;
+    height: 30px;
+    line-height: 5px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    box-shadow: 0 0 6px rgba(0,0,0,0.1);
+  }
+  
+  .collapse-toggle:hover {
+    background: #2563eb;
+  }
+  
+
 
 /* ====================== Main Content Styles ====================== */
 .main-content-area {
@@ -302,10 +338,25 @@ body {
 }
 
 /* laoding while translating */
-.loader-container {
-    height: 100%;
+.loader-layout {
+    position: fixed;              /* Use fixed to overlay the entire screen */
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #f8fafc;   /* Optional: match your app background */
     display: flex;
+    justify-content: center;
     align-items: center;
+    z-index: 9999;                /* Ensure it sits above everything */
+}
+
+.loader-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: auto;
+    width: auto;
     overflow: visible;
 }
 
@@ -313,24 +364,6 @@ body {
     width: 240px;
     height: 60px;
     overflow: visible;
-}
-
-.loader-layout {
-    display: flex;
-    /* Keep flexbox */
-    width: 100%;
-    margin-inline-start: 25rem;
-    /* Add top/bottom margin and auto for horizontal centering */
-    padding: 0 20px;
-    /* Adjust horizontal padding, remove vertical from here */
-    min-height: calc(100vh - 80px);
-    /* Adjust min-height to account for top/bottom margin */
-    align-items: center;
-    /* Vertically align items in the flex container */
-    justify-content: center;
-    /* Horizontally align items in the flex container */
-    flex-direction: column;
-    /* Stack sidebar and content vertically initially */
 }
 
 /* ====================== Content Sections ====================== */
@@ -391,9 +424,7 @@ body {
 }
 
 /* Style for the Font Awesome icon (optional, adjust if needed) */
-.fa-volume-up {
-    /* You can add specific styles here if needed */
-}
+
 /* ====================== Quiz Styles ====================== */
 .quiz-item {
     padding: 20px;

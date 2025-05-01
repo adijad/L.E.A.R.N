@@ -551,6 +551,7 @@ const LessonPage = () => {
     const [selectedAnswers, setSelectedAnswers] = useState({});
     const [quizFeedbacks, setQuizFeedbacks] = useState({});
     const [visitedLessons, setVisitedLessons] = useState([]);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     //loading states
     const [nextLessonLoad, setNextLessonLoad] = useState(false);
@@ -760,12 +761,22 @@ const LessonPage = () => {
             // setLoading(false);
         }
     };
+    
+    
+    
+    // if (loading) return <div className="lesson-loading">📚 Loading lesson...</div>;
+
+    //------------ Fancy Loading ---------------------------
 
     if (loading)
         return (
             <div className="loader-layout">
                 <div className="loader-container">
-                    <svg className="loaderSVG" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg">
+                    <svg
+                        className="loaderSVG"
+                        viewBox="0 0 120 30"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
                         <circle cx="15" cy="15" r="16" fill="#3b82f6">
                             <animate
                                 attributeName="cy"
@@ -918,24 +929,38 @@ const LessonPage = () => {
     if (error) return <div className="lesson-error">⚠️ {error}</div>;
 
     return (
-        <div className="main-content-area">
-            {/* Left Sidebar (Course Progress) */}
-            <aside className="lesson-sidebar-left">
-                <h3>Course Progress</h3>
-                <ul className="lesson-toc">
-                    {toc?.map((item, index) => (
-                        <li
-                            key={index}
-                            className={
-                                index < currentLessonIndex ? "toc-visited" :
-                                    index === currentLessonIndex ? "toc-current" : "toc-locked"
-                            }
-                        >
-                            {item}
-                        </li>
-                    ))}
-                </ul>
-            </aside>
+        <div className="lesson-layout">
+                  
+            <aside className="lesson-sidebar">
+  <div className="lesson-toc-header">
+    <h3>Course Progress</h3>
+    <button
+      className="collapse-toggle"
+      onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+    >
+      {isSidebarCollapsed ? "▶" : "◀"}
+    </button>
+  </div>
+
+  {!isSidebarCollapsed && (
+    <ul className="lesson-toc">
+      {toc?.map((item, index) => (
+        <li
+          key={index}
+          className={
+            index < currentLessonIndex
+              ? "toc-visited"
+              : index === currentLessonIndex
+              ? "toc-current"
+              : "toc-locked"
+          }
+        >
+          {item}
+        </li>
+      ))}
+    </ul>
+  )}
+</aside>
 
             {/* Main Lesson Content */}
             <div className="lesson-container">
@@ -967,16 +992,17 @@ const LessonPage = () => {
                 )}
 
                 {/* Previous Summary */}
-                {lesson?.previous_summary && (
-                    <div className="lesson-summary">
-                        <h3>📌 Previous Summary</h3>
-                        <div className="summary-content">
-                            {typeof lesson.previous_summary === "object"
-                                ? renderContent(lesson.previous_summary)
-                                : lesson.previous_summary}
-                        </div>
-                    </div>
-                )}
+{lesson?.previous_summary && currentLessonIndex > 0 && (
+  <div className="lesson-summary">
+    <h3>📌 Previous Summary</h3>
+    <div className="summary-content">
+      {typeof lesson.previous_summary === "object"
+        ? renderContent(lesson.previous_summary, currentLanguage)
+        : lesson.previous_summary}
+    </div>
+  </div>
+)}
+
 
                 {/* Main Content */}
                 {lesson?.content && (
