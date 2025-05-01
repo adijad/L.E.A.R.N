@@ -46,9 +46,6 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "RAG_code"))
 )
 
-# In-memory storage for chatbot context
-chat_context_store = {}
-
 # ------------------------------
 load_dotenv()
 # ------------------------------
