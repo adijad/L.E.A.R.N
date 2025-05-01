@@ -4,35 +4,46 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background-color: #f8fafc;
     color: #1e293b;
-    display: flex; /* Enable flexbox for overall layout */
+    display: flex;
+    /* Enable flexbox for overall layout */
 }
 
 
 /* ====================== Lesson Layout ====================== */
 .lesson-layout {
     display: flex;
-    max-width: fit-content; /* Adjust max width for lesson content */
+    max-width: fit-content;
+    /* Adjust max width for lesson content */
     background: white;
     border-radius: 16px;
     padding: 40px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
-    flex-direction: column; /* Stack lesson content internally */
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    flex-direction: column;
+    /* Stack lesson content internally */
     /* Remove centering styles that are no longer needed */
-    margin: 0; /* Reset margins */
-    min-height: auto; /* Reset min height */
-    align-items: stretch; /* Stretch items to fill container width */
-    justify-content: flex-start; /* Align content to the top */
-    width: 100%; /* Take full width of the left section */
+    margin: 0;
+    /* Reset margins */
+    min-height: auto;
+    /* Reset min height */
+    align-items: stretch;
+    /* Stretch items to fill container width */
+    justify-content: flex-start;
+    /* Align content to the top */
+    width: 100%;
+    /* Take full width of the left section */
 }
 
 /* ====================== Left Sidebar Styles ====================== */
 .lesson-sidebar-left {
-    width: 250px; /* Adjust width */
-    background: #f8fafc; /* Light background */
+    width: 250px;
+    /* Adjust width */
+    background: #f8fafc;
+    /* Light background */
     border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    margin-bottom: 20px; /* Add some bottom margin */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    margin-bottom: 20px;
+    /* Add some bottom margin */
 }
 
 .lesson-sidebar-left h3 {
@@ -102,16 +113,16 @@ body {
     justify-content: space-between;
     padding-right: 8px;
     margin-bottom: 10px;
-  }
-  
-  .lesson-toc-header h3 {
+}
+
+.lesson-toc-header h3 {
     margin: 5px;
     font-size: 1.2rem;
     font-weight: 600;
     color: #1e293b;
-  }
-  
-  .collapse-toggle {
+}
+
+.collapse-toggle {
     background: #3b82f6;
     color: white;
     border: none;
@@ -123,33 +134,41 @@ body {
     text-align: center;
     cursor: pointer;
     transition: background 0.2s ease;
-    box-shadow: 0 0 6px rgba(0,0,0,0.1);
-  }
-  
-  .collapse-toggle:hover {
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+}
+
+.collapse-toggle:hover {
     background: #2563eb;
-  }
-  
+}
+
 
 
 /* ====================== Main Content Styles ====================== */
 .main-content-area {
-    flex-grow: 1; /* Allow main content to take remaining width */
-    padding-left: 220px; /* Push content to the right to make space for navbar */
-    display: flex; /* Enable flexbox for lesson layout and right sidebar */
-    justify-content: space-between; /* Space out lesson and right sidebar */
-    align-items: flex-start; /* Align items to the top */
-    padding: 40px 20px; /* Adjust overall padding */
+    flex-grow: 1;
+    /* Allow main content to take remaining width */
+    padding-left: 220px;
+    /* Push content to the right to make space for navbar */
+    display: flex;
+    /* Enable flexbox for lesson layout and right sidebar */
+    justify-content: space-between;
+    /* Space out lesson and right sidebar */
+    align-items: flex-start;
+    /* Align items to the top */
+    padding: 40px 20px;
+    /* Adjust overall padding */
 }
 
 .lesson-container {
-    width: 100%; /* Make the container take full width within the centered layout */
-    max-width: 80%; /* Optionally set a max width for the content */
+    width: 100%;
+    /* Make the container take full width within the centered layout */
+    max-width: 80%;
+    /* Optionally set a max width for the content */
     background: white;
     border-radius: 16px;
     padding: 40px;
     margin-right: auto;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
     /* Remove margin-left as we are centering the whole layout */
 }
 
@@ -165,13 +184,16 @@ body {
     border: none; */
 
     /* Option 2: Top of Lesson Container */
-    position: relative; /* To contain absolute positioning of select */
+    position: relative;
+    /* To contain absolute positioning of select */
     width: 100%;
     display: flex;
-    justify-content: flex-end; /* Align to the right */
+    justify-content: flex-end;
+    /* Align to the right */
     margin-bottom: 20px;
     padding-right: 10px;
 }
+
 .lesson-language-selector label {
     font-weight: 500;
     color: #475569;
@@ -195,7 +217,8 @@ body {
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
     background-size: 16px 12px;
-    width: auto; /* Adjust width as needed */
+    width: auto;
+    /* Adjust width as needed */
 }
 
 
@@ -245,11 +268,12 @@ body {
 
 /* ====================== Right Sidebar (Full Course List) ====================== */
 .lesson-sidebar-right {
-    width: 300px; /* Slightly wider */
+    width: 300px;
+    /* Slightly wider */
     background: #f8fafc;
     border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     margin-left: 40px;
     overflow-y: auto;
     height: calc(100vh - 80px);
@@ -258,18 +282,22 @@ body {
 }
 
 .lesson-sidebar-right h3 {
-    font-size: 1.4rem; /* Larger heading */
+    font-size: 1.4rem;
+    /* Larger heading */
     color: #475569;
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 2px solid #e9ecef; /* More prominent divider */
+    border-bottom: 2px solid #e9ecef;
+    /* More prominent divider */
 }
 
-.course-toc { /* Renamed for clarity */
+.course-toc {
+    /* Renamed for clarity */
     list-style: none;
     padding: 0;
     margin: 0;
 }
+
 .course-toc li {
     padding: 10px 16px;
     margin: 8px 0;
@@ -278,7 +306,8 @@ body {
     cursor: pointer;
     font-size: 0.95rem;
     color: #374151;
-    border-left: 3px solid transparent; /* Indicator for current/visited */
+    border-left: 3px solid transparent;
+    /* Indicator for current/visited */
 }
 
 .course-toc li:hover {
@@ -288,21 +317,26 @@ body {
 .course-toc li.current {
     font-weight: 600;
     color: #2563eb;
-    border-left-color: #3b82f6; /* Blue indicator for current */
-    background-color: #eff6ff; /* Light blue background */
+    border-left-color: #3b82f6;
+    /* Blue indicator for current */
+    background-color: #eff6ff;
+    /* Light blue background */
 }
 
 .course-toc li.visited {
     color: #16a34a;
-    border-left-color: #22c55e; /* Green indicator for visited */
-    background-color: #f0fdf4; /* Light green background */
+    border-left-color: #22c55e;
+    /* Green indicator for visited */
+    background-color: #f0fdf4;
+    /* Light green background */
 }
 
 /* Ensure the link inside the li takes the full width */
 .course-toc li a {
     display: block;
     text-decoration: none;
-    color: inherit; /* Inherit color from the li */
+    color: inherit;
+    /* Inherit color from the li */
 }
 
 
@@ -339,16 +373,19 @@ body {
 
 /* laoding while translating */
 .loader-layout {
-    position: fixed;              /* Use fixed to overlay the entire screen */
+    position: fixed;
+    /* Use fixed to overlay the entire screen */
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: #f8fafc;   /* Optional: match your app background */
+    background-color: #f8fafc;
+    /* Optional: match your app background */
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 9999;                /* Ensure it sits above everything */
+    z-index: 9999;
+    /* Ensure it sits above everything */
 }
 
 .loader-container {
@@ -397,12 +434,15 @@ body {
 /* Adjustments for inline display with text and TTS icon */
 .tts-container {
     display: flex;
-    align-items: flex-start; /* Align icon to the start of the text (top) */
-    margin-bottom: 0.5rem; /* Add some bottom spacing between text blocks */
+    align-items: flex-start;
+    /* Align icon to the start of the text (top) */
+    margin-bottom: 0.5rem;
+    /* Add some bottom spacing between text blocks */
 }
 
 .tts-text-content {
-    flex-grow: 1; /* Allow text to take remaining space */
+    flex-grow: 1;
+    /* Allow text to take remaining space */
 }
 
 /* Style for the TTS button (icon) */
@@ -410,17 +450,22 @@ body {
     background: none;
     border: none;
     padding: 0;
-    margin-left: 8px; /* Adjust spacing from text */
+    margin-left: 8px;
+    /* Adjust spacing from text */
     cursor: pointer;
     outline: none;
-    color: #718096; /* Muted color */
+    color: #718096;
+    /* Muted color */
     transition: color 0.2s ease-in-out;
-    font-size: 1rem; /* Adjust icon size */
-    line-height: inherit; /* Ensure proper vertical alignment */
+    font-size: 1rem;
+    /* Adjust icon size */
+    line-height: inherit;
+    /* Ensure proper vertical alignment */
 }
 
 .tts-button:hover {
-    color: #3b82f6; /* Highlight on hover */
+    color: #3b82f6;
+    /* Highlight on hover */
 }
 
 /* Style for the Font Awesome icon (optional, adjust if needed) */
@@ -458,7 +503,7 @@ body {
 .quiz-option:hover {
     transform: translateY(-2px);
     border-color: #3b82f6;
-    box-shadow: 0 4px 12px rgba(59,130,246,0.1);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
 
 .quiz-feedback {
@@ -511,7 +556,7 @@ body {
     padding: 20px;
     font-size: 1.1rem;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .flashcard-front {
@@ -677,7 +722,7 @@ body {
 .next-button:hover {
     background: #2563eb;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59,130,246,0.2);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
 /* ====================== Progress Popup ====================== */
@@ -687,7 +732,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -698,7 +743,7 @@ body {
     background: white;
     border-radius: 16px;
     padding: 40px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     max-width: 500px;
     width: 90%;
     text-align: center;
@@ -729,44 +774,61 @@ body {
     color: white;
 }
 
-@media (min-width: 1025px) { /* Apply flex row layout on larger screens */
+@media (min-width: 1025px) {
+
+    /* Apply flex row layout on larger screens */
     .lesson-layout {
-        flex-direction: row; /* Put sidebar and content in a row */
-        align-items: flex-start; /* Align items to the top */
-        justify-content: flex-start; /* Align items to the left */
-        padding: 40px 20px; /* Restore original padding */
-        min-height: 100vh; /* Restore full viewport height */
-        margin: 0 auto; /* Remove top/bottom margin for full height layout */
+        flex-direction: row;
+        /* Put sidebar and content in a row */
+        align-items: flex-start;
+        /* Align items to the top */
+        justify-content: flex-start;
+        /* Align items to the left */
+        padding: 40px 20px;
+        /* Restore original padding */
+        min-height: 100vh;
+        /* Restore full viewport height */
+        margin: 0 auto;
+        /* Remove top/bottom margin for full height layout */
     }
 
     .lesson-sidebar-left {
-        position: sticky; /* Restore sticky sidebar */
+        position: sticky;
+        /* Restore sticky sidebar */
         top: 20px;
-        height: calc(100vh - 40px * 2 - 20px); /* Restore sidebar height */
-        margin-right: 40px; /* Keep right margin */
+        height: calc(100vh - 40px * 2 - 20px);
+        /* Restore sidebar height */
+        margin-right: 40px;
+        /* Keep right margin */
     }
 
     .lesson-container {
-        flex-grow: 1; /* Allow content to take remaining space */
-        margin-left: 0; /* Remove left margin */
+        flex-grow: 1;
+        /* Allow content to take remaining space */
+        margin-left: 0;
+        /* Remove left margin */
     }
 }
 
 /* ====================== Responsive Design ====================== */
 @media (max-width: 1024px) {
     body {
-        flex-direction: column; /* Stack navbar and content on smaller screens */
+        flex-direction: column;
+        /* Stack navbar and content on smaller screens */
     }
 
 
 
     .main-content-area {
-        padding-left: 0; /* Reset padding */
-        flex-direction: column; /* Stack lesson and right sidebar */
+        padding-left: 0;
+        /* Reset padding */
+        flex-direction: column;
+        /* Stack lesson and right sidebar */
     }
 
     .lesson-sidebar-right {
-        position: static; /* Make right sidebar static */
+        position: static;
+        /* Make right sidebar static */
         width: 100%;
         margin-left: 0;
         margin-top: 30px;
@@ -830,4 +892,82 @@ body {
     .interactive-block {
         padding: 20px;
     }
+}
+
+/* ====================== CUSTOM CONTEXT MENU ====================== */
+.custom-context-menu {
+    background: linear-gradient(145deg, #2d3748, #1a202c);
+    /* Dark gradient */
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    padding: 8px 0;
+    /* Vertical padding */
+    min-width: 180px;
+    /* Minimum width */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Subtle border */
+    animation: context-fade-in 0.15s ease-out;
+    /* Fade in animation */
+}
+
+@keyframes context-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.custom-context-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.custom-context-menu li {
+    padding: 10px 20px;
+    /* Padding within items */
+    color: #cbd5e1;
+    /* Light grey text */
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    display: flex;
+    /* For potential icons */
+    align-items: center;
+    gap: 10px;
+}
+
+/* Hover effect - Subtle Synthwave feel */
+.custom-context-menu li:hover {
+    background-color: rgba(79, 70, 229, 0.3);
+    /* Semi-transparent Indigo */
+    color: #ffffff;
+    /* White text on hover */
+    /* Add a subtle glow or left border */
+    border-left: 3px solid #8b5cf6;
+    /* Violet accent */
+    padding-left: 17px;
+    /* Adjust padding to keep text aligned */
+}
+
+/* Optional: Add icons using ::before */
+.custom-context-menu li[data-action="LEARN_MORE"]::before {
+    content: '📚';
+    /* Example icon */
+    font-size: 1em;
+}
+
+.custom-context-menu li[data-action="CLARIFY"]::before {
+    content: '💡';
+    font-size: 1em;
+}
+
+.custom-context-menu li[data-action="ASK_QUESTION"]::before {
+    content: '❓';
+    font-size: 1em;
 }

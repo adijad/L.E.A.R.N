@@ -1,7 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, {
+    useEffect,
+    useState,
+    useRef,
+    useCallback,
+    useMemo,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'; // If using Font Awesome
-import { faVolumeUp } from '@fortawesome/free-solid-svg-icons'; // Example volume up icon
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"; // If using Font Awesome
+import { faVolumeUp } from "@fortawesome/free-solid-svg-icons"; // Example volume up icon
 
 import axios from "axios";
 import {
@@ -30,9 +36,9 @@ import {
 } from "recharts";
 
 import "./index.css";
+import ContextMenuHandler from "./ContextMenuHandler";
 import TTSSection from "./tts";
 import languageOptions from "../../constants/languageOptions";
-
 
 /* -----------------------------------------------
    1) GRAPH RENDERING (unchanged logic)
@@ -177,7 +183,7 @@ const renderContent = (content, currentLanguage) => {
                     <p className="font-bold text-gray-700">{content}</p>
                 </div>
                 {/* Assuming TTSSection takes the text as a prop */}
-                <TTSSection text={content.toString()}/>
+                <TTSSection text={content.toString()} />
             </div>
         );
     }
@@ -201,7 +207,9 @@ const renderContent = (content, currentLanguage) => {
             if (item.heading && item.description) {
                 return (
                     <div key={key} className="mb-6">
-                        <h3 className="text-2xl font-semibold text-blue-800">{item.heading}</h3>
+                        <h3 className="text-2xl font-semibold text-blue-800">
+                            {item.heading}
+                        </h3>
                         <div className="tts-container">
                             <div className="tts-text-content">
                                 <p className="font-bold text-gray-700">{item.description}</p>
@@ -212,7 +220,7 @@ const renderContent = (content, currentLanguage) => {
                 );
             }
 
-            if (typeof item === 'object' || Array.isArray(item)) {
+            if (typeof item === "object" || Array.isArray(item)) {
                 return (
                     <div key={key} className="content-section mb-6">
                         <div className="font-bold text-xl">{renderContent(item)}</div>
@@ -547,7 +555,7 @@ const LessonPage = () => {
     const [lessonName, setLessonName] = useState(lesson_name);
     const [showScorePopup, setShowScorePopup] = useState(false);
     const [quizScore, setQuizScore] = useState(0);
-    const [nextDifficulty, setNextDifficulty] = useState('');
+    const [nextDifficulty, setNextDifficulty] = useState("");
     const [selectedAnswers, setSelectedAnswers] = useState({});
     const [quizFeedbacks, setQuizFeedbacks] = useState({});
     const [visitedLessons, setVisitedLessons] = useState([]);
@@ -557,6 +565,7 @@ const LessonPage = () => {
     const [nextLessonLoad, setNextLessonLoad] = useState(false);
     const [translateLoad, setTranslateLoad] = useState(false);
 
+    const contentRef = useRef(null);
 
     const getLabelFromCode = (code) => {
         const lang = languageOptions.find((l) => l.code === code);
@@ -565,7 +574,7 @@ const LessonPage = () => {
 
     //translate
     const translateLesson = async () => {
-        setLoading(true)
+        setLoading(true);
         try {
             // Call the /translate API with the current lesson JSON
             const response = await axios.post(
@@ -582,12 +591,10 @@ const LessonPage = () => {
             }
         } catch (error) {
             console.error("Error translating lesson", error);
-        }
-        finally {
+        } finally {
             setLoading(false);
         }
     };
-
 
     const translateToC = async () => {
         try {
@@ -649,7 +656,6 @@ const LessonPage = () => {
         if (lesson_name) fetchLesson();
     }, [lesson_name]);
 
-
     // ---------------------------------
     // 2) When the language changes, translate the loaded lesson.
     // ---------------------------------
@@ -661,28 +667,30 @@ const LessonPage = () => {
         translateToC();
     }, [currentLanguage]); // Runs whenever language changes
 
-
-
-
     const handleCourseNavigation = (item) => {
-        const newIndex = toc.findIndex(t => t === item);
+        const newIndex = toc.findIndex((t) => t === item);
         if (newIndex !== -1) {
-            navigate(`/home/lesson`, { state: { topic, lesson_name: item, toc, language: currentLanguage } });
+            navigate(`/home/lesson`, {
+                state: { topic, lesson_name: item, toc, language: currentLanguage },
+            });
         }
     };
 
     const handleQuizOptionClick = (quizIndex, option) => {
         if (!lesson?.quizzes) return;
 
-        const quizzes = Array.isArray(lesson.quizzes) ? lesson.quizzes : [lesson.quizzes];
+        const quizzes = Array.isArray(lesson.quizzes)
+            ? lesson.quizzes
+            : [lesson.quizzes];
         const correctAnswer = quizzes[quizIndex]?.answer;
 
         if (!correctAnswer) return;
 
-        setSelectedAnswers(prev => ({ ...prev, [quizIndex]: option }));
-        setQuizFeedbacks(prev => ({
+        setSelectedAnswers((prev) => ({ ...prev, [quizIndex]: option }));
+        setQuizFeedbacks((prev) => ({
             ...prev,
-            [quizIndex]: option === correctAnswer ? "✅ Correct!" : "❌ Incorrect, try again!"
+            [quizIndex]:
+                option === correctAnswer ? "✅ Correct!" : "❌ Incorrect, try again!",
         }));
     };
 
@@ -692,7 +700,9 @@ const LessonPage = () => {
             return;
         }
 
-        const quizzes = Array.isArray(lesson.quizzes) ? lesson.quizzes : [lesson.quizzes];
+        const quizzes = Array.isArray(lesson.quizzes)
+            ? lesson.quizzes
+            : [lesson.quizzes];
         let correct = 0;
 
         quizzes.forEach((quiz, index) => {
@@ -703,7 +713,7 @@ const LessonPage = () => {
         setQuizScore(score);
 
         if (score >= 0) {
-            setVisitedLessons(prev => {
+            setVisitedLessons((prev) => {
                 if (!prev.includes(lessonName)) {
                     return [...prev, lessonName];
                 }
@@ -719,17 +729,21 @@ const LessonPage = () => {
             });
         }
 
-        setNextDifficulty(
-            score < 50 ? 'Easy' :
-                score <= 80 ? 'Medium' : 'Hard'
-        );
+        setNextDifficulty(score < 50 ? "Easy" : score <= 80 ? "Medium" : "Hard");
         setShowScorePopup(score >= 0);
     };
 
     const handleNextLesson = async () => {
         const nextLessonName = toc[currentLessonIndex + 1];
         if (nextLessonName) {
-            navigate(`/home/lesson`, { state: { topic, lesson_name: nextLessonName, toc, language: currentLanguage } });
+            navigate(`/home/lesson`, {
+                state: {
+                    topic,
+                    lesson_name: nextLessonName,
+                    toc,
+                    language: currentLanguage,
+                },
+            });
         }
         try {
             // setLoading(true);
@@ -746,13 +760,11 @@ const LessonPage = () => {
                 { headers: { "Content-Type": "application/json" } }
             );
 
-
             setLesson(response.data.lesson.lesson || response.data.lesson);
-            setCurrentLessonIndex(prev => prev + 1);
+            setCurrentLessonIndex((prev) => prev + 1);
             setSelectedAnswers({});
             setQuizFeedbacks({});
             setLessonName(nextLessonName);
-
         } catch (err) {
             console.error("Failed to load next lesson:", err);
             setError("Failed to load next lesson.");
@@ -761,9 +773,7 @@ const LessonPage = () => {
             // setLoading(false);
         }
     };
-    
-    
-    
+
     // if (loading) return <div className="lesson-loading">📚 Loading lesson...</div>;
 
     //------------ Fancy Loading ---------------------------
@@ -930,40 +940,39 @@ const LessonPage = () => {
 
     return (
         <div className="lesson-layout">
-                  
             <aside className="lesson-sidebar">
-  <div className="lesson-toc-header">
-    <h3>Course Progress</h3>
-    <button
-      className="collapse-toggle"
-      onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-    >
-      {isSidebarCollapsed ? "▶" : "◀"}
-    </button>
-  </div>
+                <div className="lesson-toc-header">
+                    <h3>Course Progress</h3>
+                    <button
+                        className="collapse-toggle"
+                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    >
+                        {isSidebarCollapsed ? "▶" : "◀"}
+                    </button>
+                </div>
 
-  {!isSidebarCollapsed && (
-    <ul className="lesson-toc">
-      {toc?.map((item, index) => (
-        <li
-          key={index}
-          className={
-            index < currentLessonIndex
-              ? "toc-visited"
-              : index === currentLessonIndex
-              ? "toc-current"
-              : "toc-locked"
-          }
-        >
-          {item}
-        </li>
-      ))}
-    </ul>
-  )}
-</aside>
+                {!isSidebarCollapsed && (
+                    <ul className="lesson-toc">
+                        {toc?.map((item, index) => (
+                            <li
+                                key={index}
+                                className={
+                                    index < currentLessonIndex
+                                        ? "toc-visited"
+                                        : index === currentLessonIndex
+                                            ? "toc-current"
+                                            : "toc-locked"
+                                }
+                            >
+                                {item}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </aside>
 
             {/* Main Lesson Content */}
-            <div className="lesson-container">
+            <div className="lesson-container" ref={contentRef}>
                 {/* Language Selector (Moved to top of lesson) */}
                 {/* Header */}
                 <div className="lesson-language-selector">
@@ -981,6 +990,15 @@ const LessonPage = () => {
                     </select>
                 </div>
 
+                <ContextMenuHandler
+                    targetRef={contentRef} // Pass the ref
+                    lessonName={lessonName}
+                    topic={topic}
+                    currentLanguageLabel={getLabelFromCode(currentLanguage)} // Pass the label
+                    email={email}
+                    // Add any other props needed by handleContextMenuAction in ContextMenuHandler.js
+                />
+
                 <h1 className="lesson-title">{lesson?.title}</h1>
 
                 {/* Overview */}
@@ -992,25 +1010,22 @@ const LessonPage = () => {
                 )}
 
                 {/* Previous Summary */}
-{lesson?.previous_summary && currentLessonIndex > 0 && (
-  <div className="lesson-summary">
-    <h3>📌 Previous Summary</h3>
-    <div className="summary-content">
-      {typeof lesson.previous_summary === "object"
-        ? renderContent(lesson.previous_summary, currentLanguage)
-        : lesson.previous_summary}
-    </div>
-  </div>
-)}
-
+                {lesson?.previous_summary && currentLessonIndex > 0 && (
+                    <div className="lesson-summary">
+                        <h3>📌 Previous Summary</h3>
+                        <div className="summary-content">
+                            {typeof lesson.previous_summary === "object"
+                                ? renderContent(lesson.previous_summary, currentLanguage)
+                                : lesson.previous_summary}
+                        </div>
+                    </div>
+                )}
 
                 {/* Main Content */}
                 {lesson?.content && (
                     <div className="lesson-content">
                         <h3>📖 Lesson Content</h3>
-                        <div className="content-grid">
-                            {renderContent(lesson.content)}
-                        </div>
+                        <div className="content-grid">{renderContent(lesson.content)}</div>
                     </div>
                 )}
 
@@ -1020,16 +1035,16 @@ const LessonPage = () => {
                         <h3>📝 Knowledge Check</h3>
                         {(Array.isArray(lesson.quizzes)
                             ? lesson.quizzes
-                            : [lesson.quizzes]).map((quiz, quizIndex) => (
+                            : [lesson.quizzes]
+                        ).map((quiz, quizIndex) => (
                             <div key={quizIndex} className="quiz-item">
                                 <p className="quiz-question">{quiz.question}</p>
                                 <div className="quiz-options">
                                     {quiz.options?.map((option, optIndex) => (
                                         <div
                                             key={optIndex}
-                                            className={`quiz-option ${
-                                                selectedAnswers[quizIndex] === option ? 'selected' : ''
-                                            }`}
+                                            className={`quiz-option ${selectedAnswers[quizIndex] === option ? "selected" : ""
+                                                }`}
                                             onClick={() => handleQuizOptionClick(quizIndex, option)}
                                         >
                                             {option}
@@ -1053,14 +1068,23 @@ const LessonPage = () => {
                         <div className="flashcard-grid">
                             {(Array.isArray(lesson.flashcards)
                                 ? lesson.flashcards
-                                : Object.entries(lesson.flashcards)).map((flashcard, index) => (
+                                : Object.entries(lesson.flashcards)
+                            ).map((flashcard, index) => (
                                 <div key={index} className="flashcard">
                                     <div className="flashcard-inner">
                                         <div className="flashcard-front">
-                                            <p>{Array.isArray(flashcard) ? flashcard[0] : flashcard.term}</p>
+                                            <p>
+                                                {Array.isArray(flashcard)
+                                                    ? flashcard[0]
+                                                    : flashcard.term}
+                                            </p>
                                         </div>
                                         <div className="flashcard-back">
-                                            <p>{Array.isArray(flashcard) ? flashcard[1] : flashcard.definition}</p>
+                                            <p>
+                                                {Array.isArray(flashcard)
+                                                    ? flashcard[1]
+                                                    : flashcard.definition}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -1069,7 +1093,7 @@ const LessonPage = () => {
                     </div>
                 )}
 
-                {lesson?.graphs && <GraphRenderer graph={lesson.graphs}/>}
+                {lesson?.graphs && <GraphRenderer graph={lesson.graphs} />}
 
                 {/* Interactive Activities */}
                 {lesson?.interactives && (
@@ -1084,7 +1108,7 @@ const LessonPage = () => {
                                         pairs: interactive.pairs || [],
                                         items: interactive.items || [],
                                         regions: interactive.regions || [],
-                                        hotspots: interactive.hotspots || []
+                                        hotspots: interactive.hotspots || [],
                                     }}
                                 />
                             ))
@@ -1107,16 +1131,15 @@ const LessonPage = () => {
                     </div>
                 )}
 
-
                 {/* References */}
                 {references.length > 0 && (
                     <div className="lesson-references">
                         <h3>📚 Reference Materials</h3>
                         <div className="references-grid">
                             {references
-                                .filter(ref => typeof ref === 'string')
+                                .filter((ref) => typeof ref === "string")
                                 .map((ref, index) => {
-                                    const cleanRef = ref.replace(/^Source:\s*/i, '');
+                                    const cleanRef = ref.replace(/^Source:\s*/i, "");
                                     return (
                                         <div key={index} className="reference-item">
                                             <img
@@ -1162,16 +1185,21 @@ const LessonPage = () => {
                                 <div className="score-value">{quizScore.toFixed(0)}%</div>
                                 <p className="score-message">
                                     {quizScore === 100 ? (
-                                        <>Perfect score! Ready for the next challenge
-                                            at <strong>{nextDifficulty}</strong> level!</>
+                                        <>
+                                            Perfect score! Ready for the next challenge at{" "}
+                                            <strong>{nextDifficulty}</strong> level!
+                                        </>
                                     ) : (
-                                        <>Great effort! Next lesson will
-                                            be <strong>{nextDifficulty}</strong> difficulty</>
+                                        <>
+                                            Great effort! Next lesson will be{" "}
+                                            <strong>{nextDifficulty}</strong> difficulty
+                                        </>
                                     )}
                                 </p>
                             </div>
                             <button
-                                className={`proceed-button ${quizScore === 100 ? 'success' : 'warning'}`}
+                                className={`proceed-button ${quizScore === 100 ? "success" : "warning"
+                                    }`}
                                 onClick={() => {
                                     setShowScorePopup(false);
                                     handleNextLesson();
@@ -1183,12 +1211,10 @@ const LessonPage = () => {
                     </div>
                 )}
             </div>
-
         </div>
     );
 };
 
 // Helper function for content rendering
-
 
 export default LessonPage;
