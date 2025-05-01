@@ -1,0 +1,13 @@
+.test-div {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+  .test-div p {
+    margin: 0;
+  }
+  .test_details {
+    font-size: 14px;
+    color: gray;
+  }
