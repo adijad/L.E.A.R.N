@@ -127,26 +127,6 @@ chatbot_relevance_chain = chatbot_relevance_prompt | moderation_llm
 
 
 # ------------------------------
-# Chatbot moderation LLM
-# ------------------------------
-
-question_moderation_prompt = ChatPromptTemplate.from_messages([
-    SystemMessagePromptTemplate.from_template(
-        "You are a strict content moderation assistant.\n"
-        "Your job is to evaluate whether a user's question is appropriate to be answered by an educational chatbot.\n"
-        "You must respond in this format:\n"
-        "Category: <Safe, Offensive, NSFW, Harassment, Hate, Uncertain>\n"
-        "Reason: <short explanation>"
-    ),
-    HumanMessagePromptTemplate.from_template(
-        "Evaluate the following question:\n\n{input}"
-    )
-])
-
-question_moderation_chain = question_moderation_prompt | moderation_llm
-
-
-# ------------------------------
 # FastAPI Setup
 # ------------------------------
 origins = [
@@ -274,11 +254,14 @@ class LessonRequest(BaseModel):
     lesson_name: str
     toc: List[str]
 
+class ContextRequest(BaseModel):
+    topic: str
+    toc: List[str]
+    selected_text: str
+
 class ChatRequest(BaseModel):
     topic: str
     question: str
-    selected_text: str
-    toc: List[str]
 
 # ------------------------------
 # Utility Functions
@@ -459,6 +442,15 @@ Answer using ONLY the above context. Be clear and helpful.
     )
     return response.choices[0].message.content
 
+@app.post("/store_context")
+async def store_context(request: ContextRequest):
+    chat_context_store[request.topic] = {
+        "selected_text": request.selected_text,
+        "toc": request.toc
+    }
+    return {"status": "Context stored successfully."}
+
+
 # ------------------------------
 # FastAPI Endpoints
 # ------------------------------
@@ -592,16 +584,13 @@ async def generate_lesson(
 
 @app.post("/chatbot_qa")
 async def chatbot_qa(request: ChatRequest):
-    topic = request.topic
-    question = request.question.strip()
-    selected_text = request.selected_text.strip()
-    toc = request.toc
+    context = chat_context_store.get(request.topic)
+    if not context:
+        raise HTTPException(status_code=400, detail="No stored context found for this topic.")
 
-    question_mod = question_moderation_chain.invoke({"input": question})
-    match = re.search(r"Category:\s*(\w+).*?Reason:\s*(.*)", question_mod.content, re.DOTALL)
-    if not match or match.group(1).strip().lower() != "safe":
-        reason = match.group(2).strip() if match else "Could not evaluate the question."
-        raise HTTPException(status_code=400, detail=f"Question rejected by moderation: {reason}")
+    selected_text = context.get("selected_text", "")
+    toc = context.get("toc", [])
+    question = request.question.strip()
 
     # ✅ Input validation
     if not question or len(question) < 3 or re.fullmatch(r"[\W\d\s]+", question):
@@ -611,22 +600,23 @@ async def chatbot_qa(request: ChatRequest):
         }
 
     if not selected_text or not toc:
-        raise HTTPException(status_code=400, detail="Selected text and TOC are required.")
+        raise HTTPException(status_code=400, detail="Incomplete context.")
 
     # Step 1: Relevance filter
-    is_relevant = check_question_relevance(topic, selected_text, question)
+    is_relevant = check_question_relevance(request.topic, selected_text, request.question)
     if not is_relevant:
         return {
             "status": "off-topic",
-            "message": f"Please ask something relevant to the current lesson on '{topic}'."
+            "message": f"Please ask something relevant to the current lesson on '{request.topic}'."
         }
 
     # Step 2: Generate answer
-    answer = generate_answer_directly(topic, selected_text, toc, question)
+    answer = generate_answer_directly(request.topic, selected_text, toc, request.question)
     return {
         "status": "ok",
         "answer": answer
     }
+
 # ------------------------------
 # Step 5: Generate Translated Lesson
 # ------------------------------
