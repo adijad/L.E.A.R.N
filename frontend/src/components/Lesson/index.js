@@ -996,7 +996,8 @@ const LessonPage = () => {
                     topic={topic}
                     currentLanguageLabel={getLabelFromCode(currentLanguage)} // Pass the label
                     email={email}
-                    // Add any other props needed by handleContextMenuAction in ContextMenuHandler.js
+                    overview={lesson?.overview}
+                    content={lesson?.content}
                 />
 
                 <h1 className="lesson-title">{lesson?.title}</h1>
