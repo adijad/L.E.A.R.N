@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import '../css/Auth.css';
+import { FaUser, FaLock } from "react-icons/fa"; // Added icons
 
 const AuthDialog = ({ setIsAuthenticated }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -25,9 +26,8 @@ const AuthDialog = ({ setIsAuthenticated }) => {
         axios.post(`http://localhost:8080${endpoint}`, payload)
             .then(response => {
                 console.log(`${isLogin ? 'Login' : 'Registration'} successful:`, response.data);
-                localStorage.setItem("userEmail", email); // store email for tracking
-                console.log(localStorage.getItem("userEmail"));
-                setIsAuthenticated(true); // Set user as authenticated
+                localStorage.setItem("userEmail", email);
+                setIsAuthenticated(true);
             })
             .catch(error => {
                 setError(error.response?.data?.message || 'An error occurred');
@@ -44,59 +44,80 @@ const AuthDialog = ({ setIsAuthenticated }) => {
                 <form onSubmit={handleSubmit}>
                     {!isLogin && (
                         <div className="form-group">
-                            <label>Full Name</label>
                             <input
                                 type="text"
+                                id="fullName"
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
                                 required
+                                className={fullName ? 'filled' : ''}
                             />
+                            <label htmlFor="fullName">Full Name</label>
+                            <FaUser className="input-icon" />
                         </div>
                     )}
 
                     <div className="form-group">
-                        <label>Email</label>
                         <input
                             type="email"
+                            id="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
+                            className={email ? 'filled' : ''}
                         />
+                        <label htmlFor="email">Email</label>
+                        <FaUser className="input-icon" />
                     </div>
 
                     <div className="form-group">
-                        <label>Password</label>
                         <input
                             type="password"
+                            id="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            className={password ? 'filled' : ''}
                         />
+                        <label htmlFor="password">Password</label>
+                        <FaLock className="input-icon" />
                     </div>
 
                     {!isLogin && (
                         <div className="form-group">
-                            <label>Confirm Password</label>
                             <input
                                 type="password"
+                                id="confirmPassword"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
+                                className={confirmPassword ? 'filled' : ''}
                             />
+                            <label htmlFor="confirmPassword">Confirm Password</label>
+                            <FaLock className="input-icon" />
                         </div>
                     )}
+<div className="remember-forgot">
+  <label className="remember-label">
+    <input type="checkbox" />
+    Remember me
+  </label>
+  <a href="/forgot-password" className="forgot-link">Forgot Password?</a>
+</div>
+
+
 
                     {error && <div className="error-message">{error}</div>}
 
                     <button type="submit" className="auth-button">
-                        {isLogin ? 'Sign In' : 'Create Account'}
+                        {isLogin ? 'Login' : 'Create Account'}
                     </button>
                 </form>
 
                 <div className="auth-footer">
                     {isLogin ? (
                         <>
-                            <a href="/forgot-password">Forgot password?</a>
+
                             <p>Don't have an account? <span onClick={() => setIsLogin(false)} className="auth-link">Sign up</span></p>
                         </>
                     ) : (

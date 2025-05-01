@@ -7,21 +7,7 @@ body {
     display: flex; /* Enable flexbox for overall layout */
 }
 
-/* Navbar Styles (Keep these, but ensure they don't cause overlap) */
-nav {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 220px;
-    height: 100vh;
-    background-color: #2c3e50;
-    color: #ecf0f1;
-    z-index: 1000;
-    padding-top: 30px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
+
 /* ====================== Lesson Layout ====================== */
 .lesson-layout {
     display: flex;
@@ -122,10 +108,11 @@ nav {
 
 .lesson-container {
     width: 100%; /* Make the container take full width within the centered layout */
-    max-width: 1000px; /* Optionally set a max width for the content */
+    max-width: 80%; /* Optionally set a max width for the content */
     background: white;
     border-radius: 16px;
     padding: 40px;
+    margin-right: auto;
     box-shadow: 0 4px 24px rgba(0,0,0,0.06);
     /* Remove margin-left as we are centering the whole layout */
 }
@@ -740,29 +727,7 @@ nav {
         flex-direction: column; /* Stack navbar and content on smaller screens */
     }
 
-    nav {
-        position: static; /* Make navbar static */
-        width: 100%;
-        height: auto;
-        padding: 15px;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-    }
 
-    .navbar-brand-container {
-        border-bottom: none;
-    }
-
-    .navbar-nav {
-        flex-direction: row;
-        align-items: center;
-    }
-
-    .navbar-nav .nav-item {
-        margin-bottom: 0;
-        margin-left: 10px;
-    }
 
     .main-content-area {
         padding-left: 0; /* Reset padding */
@@ -783,20 +748,7 @@ nav {
 }
 
 @media (max-width: 768px) {
-    nav {
-        flex-direction: column;
-        align-items: flex-start;
-        width: 100%;
-    }
 
-    .navbar-nav {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .navbar-nav .nav-item {
-        margin-left: 0;
-    }
 
     .lesson-layout {
         padding: 20px;

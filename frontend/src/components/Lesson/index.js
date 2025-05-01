@@ -701,7 +701,7 @@ const LessonPage = () => {
         const score = (correct / quizzes.length) * 100;
         setQuizScore(score);
 
-        if (score > 0) {
+        if (score >= 0) {
             setVisitedLessons(prev => {
                 if (!prev.includes(lessonName)) {
                     return [...prev, lessonName];
@@ -722,7 +722,7 @@ const LessonPage = () => {
             score < 50 ? 'Easy' :
                 score <= 80 ? 'Medium' : 'Hard'
         );
-        setShowScorePopup(score > 0);
+        setShowScorePopup(score >= 0);
     };
 
     const handleNextLesson = async () => {
@@ -1158,35 +1158,6 @@ const LessonPage = () => {
                 )}
             </div>
 
-            {/* Right Sidebar (Full Course List) */}
-            <aside className="lesson-sidebar-right">
-                <h3>Course Content</h3>
-                <ul className="course-toc">
-                    {toc?.map((item, index) => (
-                        <li
-                            key={index}
-                            className={`${item === lessonName ? 'current' : visitedLessons.includes(item) ? 'visited' : ''}`}
-                            onClick={() => handleCourseNavigation(item)}
-                        >
-                            <a href="#">{item}</a> {/* Added an anchor for better clickability */}
-                        </li>
-                    ))}
-                </ul>
-                <div className="lesson-language-selector">
-                    <label htmlFor="lesson-language-select">Language:</label>
-                    <select
-                        id="lesson-language-select"
-                        value={currentLanguage}
-                        onChange={(e) => setCurrentLanguage(e.target.value)}
-                    >
-                        {languageOptions.map((lang) => (
-                            <option key={lang.code} value={lang.code}>
-                                {lang.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </aside>
         </div>
     );
 };

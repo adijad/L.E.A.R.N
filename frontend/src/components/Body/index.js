@@ -10,6 +10,7 @@ import {
   FaArrowRight
 } from 'react-icons/fa';
 import './index.css';
+import TopNavbar from "../Navbar/TopNavbar";
 
 const Body = () => {
   const email = localStorage.getItem("userEmail");
@@ -79,23 +80,15 @@ const Body = () => {
     }
   };
 
-  const handleScroll = (ref, direction, setLeft, setRight) => {
+  const handleScroll = (ref, direction) => {
     const container = ref.current;
-    const cardWidth = 300; // Match your card width
-    const gap = 24; // 1.5rem gap
-    const scrollAmount = (cardWidth + gap) * 3;
+    const scrollAmount = container.offsetWidth * 0.8; // Scroll 80% of container width
 
     if (direction === 'left') {
       container.scrollLeft -= scrollAmount;
     } else {
       container.scrollLeft += scrollAmount;
     }
-
-    // Update visibility after scroll
-    setTimeout(() => {
-      setLeft(container.scrollLeft > 0);
-      setRight(container.scrollLeft + container.clientWidth < container.scrollWidth);
-    }, 300);
   };
 
   const setupScrollListener = (ref, setLeft, setRight) => {
@@ -152,7 +145,7 @@ const Body = () => {
               {showLeftProgress && (
                   <button
                       className="scroll-button left"
-                      onClick={() => handleScroll(progressScrollRef, 'left', setShowLeftProgress, setShowRightProgress)}
+                      onClick={() => handleScroll(progressScrollRef, 'left')}
                   >
                     <FaArrowLeft />
                   </button>
@@ -204,7 +197,7 @@ const Body = () => {
               {showRightProgress && (
                   <button
                       className="scroll-button right"
-                      onClick={() => handleScroll(progressScrollRef, 'right', setShowLeftProgress, setShowRightProgress)}
+                      onClick={() => handleScroll(progressScrollRef, 'right')}
                   >
                     <FaArrowRight />
                   </button>
