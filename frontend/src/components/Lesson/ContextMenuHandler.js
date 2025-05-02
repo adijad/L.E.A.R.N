@@ -4,53 +4,28 @@ import React, {
     useEffect,
     useCallback,
     useMemo,
-    // Keep useRef if you pass targetRef from LessonPage
-    useRef, // Assuming targetRef is passed as a prop
+    useRef, // Keep useRef
 } from "react";
 // import axios from "axios"; // Keep commented out until real API is used
 import "./index.css"; // Import the CSS for styling
 
-// --- Import the ChatbotIcon component ---
-import ChatbotIcon from './ChatbotIcon'; // Adjust path if needed
+// --- Step 1: Change Import from ChatbotIcon to ChatWindow ---
+// import ChatbotIcon from './ChatbotIcon'; // Remove or comment out this line
+import ChatWindow from './ChatWindow'; // Import the new ChatWindow component
 
-// --- The Visual Context Menu Component (Internal to this file) ---
+// --- The Visual Context Menu Component (Internal - NO CHANGES NEEDED) ---
 const ContextMenu = ({ x, y, show, options, onClose }) => {
-    // Check if the component should render
-    if (!show) {
-        return null;
-    }
-
-    // Style for positioning
-    const style = {
-        top: `${y}px`,
-        left: `${x}px`,
-        position: "absolute", // Use absolute positioning
-        zIndex: 1000,         // Ensure it appears above other content
-    };
-
-    // Prevent clicks inside the menu from closing it immediately
+    // ... This internal component remains exactly the same ...
+    if (!show) { return null; }
+    const style = { top: `${y}px`, left: `${x}px`, position: "absolute", zIndex: 1000 };
     const handleMenuClick = (event) => event.stopPropagation();
-
-    // Render the menu
     return (
-        <div
-            style={style}
-            className="custom-context-menu" // Apply CSS class
-            onClick={handleMenuClick}     // Handle clicks inside the menu
-            onMouseLeave={onClose}        // Close menu when mouse leaves
-        >
-            <ul>
-                {/* Map through the provided menu options */}
-                {options.map((option) => (
-                    <li
-                        key={option.label} // Use label as key (assuming unique)
-                        // Set data-action for potential CSS targeting (e.g., icons)
-                        data-action={option.label.toUpperCase().replace(/ /g, "_")}
-                        onClick={option.action} // Execute action on click
-                    >
-                        {option.label} {/* Display option text */}
+        <div style={style} className="custom-context-menu" onClick={handleMenuClick} onMouseLeave={onClose} >
+            <ul> {options.map((option) => (
+                    <li key={option.label} data-action={option.label.toUpperCase().replace(/ /g, "_")} onClick={option.action} >
+                        {option.label}
                     </li>
-                ))}
+                 ))}
             </ul>
         </div>
     );
@@ -58,176 +33,181 @@ const ContextMenu = ({ x, y, show, options, onClose }) => {
 
 // --- The Main Handler Component to Export ---
 const ContextMenuHandler = ({
-    targetRef, // Ref of the element to attach listeners to (passed from Parent)
-    // Props needed for context / API call:
+    targetRef, // Ref from Parent
+    // Props for context
     lessonName,
     topic,
-    currentLanguageLabel, // Pass the result of getLabelFromCode
+    currentLanguageLabel,
     email,
-    // overview, // Uncomment and pass from parent if needed for real API
-    // content,  // Uncomment and pass from parent if needed for real API
+    // overview, // Keep if needed for future API calls
+    // content,  // Keep if needed for future API calls
 }) => {
-    // State for the context menu's visibility, position, and selected text
-    const [contextMenu, setContextMenu] = useState({
-        show: false,
-        x: 0,
-        y: 0,
-        selectedText: "",
-    });
+    // State for the context menu
+    const [contextMenu, setContextMenu] = useState({ show: false, x: 0, y: 0, selectedText: "" });
 
-    // State for the chatbot icon's visibility and the data to pass to it
-    const [isChatbotVisible, setIsChatbotVisible] = useState(false);
-    const [chatbotQuery, setChatbotQuery] = useState(null); // Stores { actionType, selectedText }
+    // --- Step 2: Replace ChatbotIcon state with ChatWindow state ---
+    // Remove old state:
+    // const [isChatbotVisible, setIsChatbotVisible] = useState(false);
+    // const [chatbotQuery, setChatbotQuery] = useState(null);
 
-    // --- Action Handler for Context Menu Options ---
+    // Add new state for the chat window:
+    const [isChatOpen, setIsChatOpen] = useState(false); // Is the chat window currently visible?
+    const [chatMessages, setChatMessages] = useState([]); // Array of message objects
+    const [showQuestionInput, setShowQuestionInput] = useState(false); // Should the "Ask" input be visible?
+
+    // --- Step 3: Add Helper Function to add messages ---
+    const addMessage = useCallback((message) => {
+        setChatMessages(prevMessages => [
+            ...prevMessages,
+            { ...message, id: Date.now() + Math.random() } // Add unique ID
+        ]);
+    }, []); // No dependency needed for functional update
+
+    // --- Step 4: Modify the Action Handler ---
     const handleContextMenuAction = useCallback(
         async (actionType, text) => {
-            // Log the action and context (for debugging)
             console.log(`Context Menu Action Triggered: ${actionType}`);
             console.log(`Selected Text: "${text}"`);
             console.log(`Lesson Context Used: ${lessonName}, ${topic}, ${currentLanguageLabel}, ${email}`);
 
-            // Close the context menu right away
+            // Close context menu
             setContextMenu((prev) => ({ ...prev, show: false }));
 
-            // ** SIMULATED API CALL **
+            // Simulate API call
             console.log("Simulating API call...");
-            // Introduce a small delay to mimic network latency
-            await new Promise(resolve => setTimeout(resolve, 500)); // 0.5 second delay
+            await new Promise(resolve => setTimeout(resolve, 300));
+            const dummyApiResponse = `Acknowledged '${actionType}' for: "${text}"`;
+            console.log("Simulated Response:", dummyApiResponse);
 
-            // Assume a successful response for now
-            const dummyApiResponse = "Yes, acknowledged."; // Your dummy response
-            console.log("Simulated API Response Received:", dummyApiResponse);
-
-            // ** PROCESS SIMULATED RESPONSE **
-            // In a real scenario, you would check the actual response content here
+            // Process the response to update chat state
             if (dummyApiResponse) {
-                // Set the data needed for the chatbot
-                setChatbotQuery({ actionType, selectedText: text });
-                // Make the chatbot icon visible
-                setIsChatbotVisible(true);
-                console.log("Chatbot icon triggered to display.");
-            } else {
-                // Handle potential errors from the (simulated) API call
-                console.error("Simulated API call failed or returned no response.");
-                // Optionally, inform the user: alert("Sorry, couldn't process the request right now.");
-            }
-            // ** END OF SIMULATED API CALL LOGIC **
+                const initialBotMessage = {
+                    sender: 'bot',
+                    type: 'response',
+                    text: dummyApiResponse,
+                    originalQuery: { actionType, selectedText: text }
+                };
 
+                // If chat wasn't open, start new message list, otherwise append
+                if (!isChatOpen) {
+                    setChatMessages([initialBotMessage]);
+                } else {
+                    addMessage(initialBotMessage);
+                }
+
+                // Handle "Ask a Question" - show input
+                if (actionType === 'ASK_QUESTION') {
+                    setShowQuestionInput(true);
+                } else {
+                    setShowQuestionInput(false); // Hide for other actions
+                }
+
+                // Open the chat window
+                setIsChatOpen(true);
+                console.log("Chat window opened/updated.");
+
+            } else {
+                console.error("Simulated API call failed.");
+                // alert("Sorry, couldn't process the request."); // Optional user feedback
+            }
         },
-        // Dependencies: Include all props/state used within this handler
-        [lessonName, topic, currentLanguageLabel, email]
+        [isChatOpen, addMessage, lessonName, topic, currentLanguageLabel, email] // Update dependencies
     );
 
-    // --- Define Menu Options ---
-    // Use useMemo to prevent redefining options on every render unless dependencies change
+    // --- Step 5: Add Handler for Question Submission ---
+    const handleQuestionSubmit = useCallback((userQuestionText) => {
+        console.log("User submitted question:", userQuestionText);
+        // 1. Add user's question
+        addMessage({ sender: 'user', type: 'question_submitted', text: userQuestionText });
+        // 2. Hide input
+        setShowQuestionInput(false);
+        // 3. Simulate bot reply
+        setTimeout(() => {
+            addMessage({
+                sender: 'bot',
+                type: 'response',
+                text: `Thanks for asking! This is a generic answer about "${userQuestionText}".`,
+            });
+        }, 500);
+    }, [addMessage]); // Dependency
+
+
+    // --- Define Menu Options (actions now use updated handler) ---
     const menuOptions = useMemo(
         () => [
-            {
-                label: "L.E.A.R.N More", // Label displayed in the menu
-                // Action calls the handler, passing the type and current selected text
-                action: () => handleContextMenuAction("LEARN_MORE", contextMenu.selectedText),
-            },
-            {
-                label: "Clarify",
-                action: () => handleContextMenuAction("CLARIFY", contextMenu.selectedText),
-            },
-            {
-                label: "Ask a question",
-                action: () => handleContextMenuAction("ASK_QUESTION", contextMenu.selectedText),
-            },
+            { label: "L.E.A.R.N More", action: () => handleContextMenuAction("LEARN_MORE", contextMenu.selectedText) },
+            { label: "Clarify", action: () => handleContextMenuAction("CLARIFY", contextMenu.selectedText) },
+            { label: "Ask a question", action: () => handleContextMenuAction("ASK_QUESTION", contextMenu.selectedText) },
         ],
-        // Dependencies: The action handler and the selected text it depends on
         [handleContextMenuAction, contextMenu.selectedText]
     );
 
-    // --- Event Handlers for Menu Triggering ---
-    // MouseUp doesn't need to do anything specific for selection capture anymore
+    // --- Event Handlers for Menu Triggering (NO CHANGES NEEDED) ---
     const handleMouseUp = useCallback(() => { }, []);
-
-    // ContextMenu (Right-click) handler: Prevents default menu and shows custom one
     const handleContextMenu = useCallback((event) => {
-        // Get currently selected text on the page
         const selected = window.getSelection().toString().trim();
-        // Only show the menu if some text is actually selected
         if (selected) {
-            event.preventDefault(); // Stop the browser's default right-click menu
-            // Update state to show the menu at the click coordinates
-            setContextMenu({
-                show: true,
-                x: event.pageX, // Horizontal position
-                y: event.pageY, // Vertical position
-                selectedText: selected, // Store the selected text
-            });
+            event.preventDefault();
+            setContextMenu({ show: true, x: event.pageX, y: event.pageY, selectedText: selected });
         } else {
-            // If no text is selected, ensure the custom menu is hidden
             setContextMenu((prev) => ({ ...prev, show: false }));
         }
-    }, []); // This handler doesn't depend on component state/props
+    }, []);
 
-    // --- Effects ---
-    // Effect to add/remove event listeners on the target element (passed via ref)
+    // --- Effects (NO CHANGES NEEDED to these effects) ---
+    // Effect to add/remove listeners on the target element
     useEffect(() => {
-        const targetElement = targetRef.current; // Get the DOM element from the ref
-        // Only add listeners if the target element exists
+        const targetElement = targetRef?.current;
         if (targetElement) {
-            // Attach listeners for mouse up and right-click
             targetElement.addEventListener("mouseup", handleMouseUp);
             targetElement.addEventListener("contextmenu", handleContextMenu);
-
-            // Cleanup function: Remove listeners when component unmounts or dependencies change
             return () => {
                 targetElement.removeEventListener("mouseup", handleMouseUp);
                 targetElement.removeEventListener("contextmenu", handleContextMenu);
             };
+        } else {
+            console.warn("ContextMenuHandler: targetRef not assigned.");
         }
-        // Dependencies: Re-run effect if the target element ref or handlers change
     }, [targetRef, handleMouseUp, handleContextMenu]);
 
     // Effect to handle clicks outside the context menu to close it
     useEffect(() => {
-        // Function to check if menu should close
         const handleClickOutside = () => {
-            // If the menu is currently shown, hide it
-            // A more complex check could involve checking event.target against the menu ref,
-            // but simply closing on any click is often sufficient.
-            if (contextMenu.show) {
-                setContextMenu((prev) => ({ ...prev, show: false }));
-            }
+            if (contextMenu.show) { setContextMenu((prev) => ({ ...prev, show: false })); }
         };
-        // Add the click listener ONLY when the menu is visible
-        if (contextMenu.show) {
-            document.addEventListener("click", handleClickOutside);
-        }
-        // Cleanup: Remove the listener when the menu hides or component unmounts
-        return () => {
-            document.removeEventListener("click", handleClickOutside);
-        };
-    }, [contextMenu.show]); // Dependency: Only run when menu visibility changes
+        if (contextMenu.show) { document.addEventListener("click", handleClickOutside); }
+        return () => { document.removeEventListener("click", handleClickOutside); };
+    }, [contextMenu.show]);
 
     // --- Render ---
-    // Use a React Fragment (<>...</>) to return multiple components side-by-side
     return (
         <>
-            {/* Render the Context Menu itself (it's internally conditional based on `show`) */}
+            {/* Render the Context Menu (conditionally) */}
             <ContextMenu
                 x={contextMenu.x}
                 y={contextMenu.y}
                 show={contextMenu.show}
                 options={menuOptions}
-                // Pass a function to close the menu from the ContextMenu component (e.g., onMouseLeave)
                 onClose={() => setContextMenu((prev) => ({ ...prev, show: false }))}
             />
 
-            {/* Conditionally render the Chatbot Icon */}
-            {/* It only renders when isChatbotVisible is true */}
-            {isChatbotVisible && (
+            {/* --- Step 6: Render ChatWindow instead of ChatbotIcon --- */}
+            {/* Remove or comment out the old ChatbotIcon rendering: */}
+            {/* {isChatbotVisible && (
                 <ChatbotIcon
-                    initialQuery={chatbotQuery} // Pass the stored query data
-                    // Pass a function to allow the ChatbotIcon to close itself
+                    initialQuery={chatbotQuery}
                     onClose={() => setIsChatbotVisible(false)}
                 />
-            )}
+            )} */}
+
+            {/* Add the new ChatWindow rendering */}
+            <ChatWindow
+                isOpen={isChatOpen}                   // Use new state variable
+                messages={chatMessages}               // Pass messages array
+                showInput={showQuestionInput}         // Pass flag for input
+                onClose={() => setIsChatOpen(false)} // Function to close window
+                onQuestionSubmit={handleQuestionSubmit} // Function to handle submitted question
+            />
         </>
     );
 };
