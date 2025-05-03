@@ -25,7 +25,7 @@ import re
 import time
 from enum import Enum
 from typing import List
-
+from typing import Literal
 import openai
 import uvicorn
 from dotenv import load_dotenv
@@ -272,9 +272,13 @@ class LessonRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     topic: str
+    lesson_name: str
     question: str
     selected_text: str
     toc: List[str]
+    overview: str
+    content: str
+    mode: Literal["question", "clarify", "learn"]
 
 # ------------------------------
 # Utility Functions
@@ -432,9 +436,12 @@ def check_question_relevance(topic: str, paragraph: str, question: str) -> bool:
         print(f"❌ Relevance check failed: {e}")
         return False
 
-def generate_answer_directly(topic: str, selected_text: str, toc: List[str], question: str) -> str:
+# ------------------------------
+# This function generates an answer when mode is "question"
+
+def generate_question_response(topic: str, selected_text: str, toc: List[str], question: str, overview: str, content: str) -> str:
     toc_str = "\n".join(f"- {item}" for item in toc)
-    prompt = f"""
+    user_prompt = f"""
 You are a helpful educational tutor. The student is learning about "{topic}".
 
 Here is the paragraph the student selected from the lesson:
@@ -443,15 +450,94 @@ Here is the paragraph the student selected from the lesson:
 The full lesson covers:
 {toc_str}
 
+Here is the overview of the current lesson:
+\"\"\"{overview}\"\"\"
+
+Here is the full content of the lesson:
+\"\"\"{content}\"\"\"
+
 The student asked:
 "{question}"
 
-Answer using ONLY the above context. Be clear and helpful.
+Answer the student's question clearly and informatively. Use the provided content as your primary reference. You may elaborate when helpful, but stay faithful to the topic and material.
 """
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}]
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful educational tutor who answers student questions using the provided content."
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            }
+        ]
+    )
+    return response.choices[0].message.content
+
+# ------------------------------
+# This function generates an answer when mode is "learn"
+
+def generate_learn_response(topic: str, selected_text: str, overview: str, content: str) -> str:
+    user_prompt = f"""
+The student is learning about "{topic}" and would like to understand this paragraph in more depth:
+\"\"\"{selected_text}\"\"\"
+
+Here is the lesson overview:
+\"\"\"{overview}\"\"\"
+
+Here is the full lesson content:
+\"\"\"{content}\"\"\"
+
+Explain the selected text n a detailed, engaging, and easy-to-understand way. Use the provided content as reference, and elaborate when necessary to support the student’s understanding.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful AI tutor. Provide detailed explanations using the context provided by the user."
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            }
+        ]
+    )
+    return response.choices[0].message.content
+
+# ------------------------------
+# This function generates an answer when mode is "clarify"
+
+def generate_clarify_response(topic: str, selected_text: str, overview: str, content: str) -> str:
+    user_prompt = f"""
+The student is learning about "{topic}" and would like clarification on this phrase:
+\"\"\"{selected_text}\"\"\"
+
+Here is the lesson overview:
+\"\"\"{overview}\"\"\"
+
+Here is the full lesson content:
+\"\"\"{content}\"\"\"
+
+Clarify what the selected phrase means in this context. If it's a reference to people, places, quantities, or dates, provide a precise explanation. Use the provided context, and elaborate slightly if needed for clarity.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are an AI tutor that clarifies educational content precisely based on the provided paragraph and topic context."
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            }
+        ]
     )
     return response.choices[0].message.content
 
@@ -588,42 +674,56 @@ async def generate_lesson(
 
 @app.post("/chatbot_qa")
 async def chatbot_qa(request: ChatRequest):
-    topic = request.topic
+    topic = request.topic.strip()
+    lesson_name = request.lesson_name.strip()
     question = request.question.strip()
     selected_text = request.selected_text.strip()
     toc = request.toc
+    overview = request.overview.strip()
+    content = request.content.strip()
+    mode = request.mode.strip().lower()
 
-    question_mod = question_moderation_chain.invoke({"input": question})
-    match = re.search(r"Category:\s*(\w+).*?Reason:\s*(.*)", question_mod.content, re.DOTALL)
-    if not match or match.group(1).strip().lower() != "safe":
-        reason = match.group(2).strip() if match else "Could not evaluate the question."
-        raise HTTPException(status_code=400, detail=f"Question rejected by moderation: {reason}")
+    if not selected_text or not toc or not overview or not content or not mode:
+        raise HTTPException(status_code=400, detail="Missing required fields in request body.")
 
-    # ✅ Input validation
-    if not question or len(question) < 3 or re.fullmatch(r"[\W\d\s]+", question):
-        return {
-            "status": "invalid",
-            "message": "Please enter a meaningful question."
-        }
+    if not selected_text or not toc or not overview or not content or not mode:
+        raise HTTPException(status_code=400, detail="Missing required fields in request body.")
 
-    if not selected_text or not toc:
-        raise HTTPException(status_code=400, detail="Selected text and TOC are required.")
+    # 🔀 Mode switch
+    if mode == "question":
 
-    # Step 1: Relevance filter
-    is_relevant = check_question_relevance(topic, selected_text, question)
-    if not is_relevant:
-        return {
-            "status": "off-topic",
-            "message": f"Please ask something relevant to the current lesson on '{topic}'."
-        }
+        # ✅ Basic validations
+        if not question or len(question) < 3 or re.fullmatch(r"[\W\d\s]+", question):
+            return {"status": "invalid", "message": "Please enter a meaningful question."}
 
-    # Step 2: Generate answer
-    answer = generate_answer_directly(topic, selected_text, toc, question)
+        # 🛡️ Moderation
+        mod_result = question_moderation_chain.invoke({"input": question})
+        match = re.search(r"Category:\s*(\w+).*?Reason:\s*(.*)", mod_result.content, re.DOTALL)
+        if not match or match.group(1).strip().lower() != "safe":
+            reason = match.group(2).strip() if match else "Could not evaluate the question."
+            raise HTTPException(status_code=400, detail=f"Question rejected by moderation: {reason}")
+
+        if not check_question_relevance(topic, selected_text, question):
+            return {
+                "status": "off-topic",
+                "message": f"Please ask something relevant to the current lesson on '{topic}'."
+            }
+        answer = generate_question_response(topic, selected_text, toc, question, overview, content)
+
+    elif mode == "learn":
+        answer = generate_learn_response(topic, selected_text, overview, content)
+
+    elif mode == "clarify":
+        answer = generate_clarify_response(topic, selected_text, overview, content)
+
+    else:
+        raise HTTPException(status_code=400, detail="Invalid mode. Choose from: question, learn, clarify.")
+
     return {
         "status": "ok",
-        "answer": answer
+        "mode": mode,
+        "answer": answer.strip()
     }
-
 
 # ------------------------------
 # Step 5: Generate Translated Lesson

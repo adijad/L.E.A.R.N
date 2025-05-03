@@ -998,6 +998,7 @@ const LessonPage = () => {
                     email={email}
                     overview={lesson?.overview}
                     content={lesson?.content}
+                    toc={toc}
                 />
 
                 <h1 className="lesson-title">{lesson?.title}</h1>
