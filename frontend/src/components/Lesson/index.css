@@ -146,7 +146,7 @@ body {
   }
   
   .toc-visited {
-    background: #f0fdf4;
+    background: #26105778;
     color: #16a34a;
   }
   
@@ -155,7 +155,7 @@ body {
   }
   
   .toc-current {
-    background: #eff6ff;
+    background: rgba(25, 3, 73, 0.76);
     color: #2563eb;
     font-weight: 600;
   }
