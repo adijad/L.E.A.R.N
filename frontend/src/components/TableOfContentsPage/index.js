@@ -155,7 +155,7 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
   return (
       <div className="toc-modern-container">
         <div className="toc-language-selector">
-          <label htmlFor="language-select">Language: </label>
+          <label htmlFor="language-select"></label>
           <select
               id="language-select"
               value={currentLanguage}
