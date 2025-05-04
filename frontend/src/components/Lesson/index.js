@@ -1007,6 +1007,7 @@ const LessonPage = () => {
                     overview={lesson?.overview}
                     content={lesson?.content}
                     toc={toc}
+                    language={currentLanguage}
                 />
 
                 <h1 className="lesson-title">{lesson?.title}</h1>

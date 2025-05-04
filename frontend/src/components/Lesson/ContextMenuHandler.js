@@ -7,6 +7,8 @@ import React, {
   } from "react";
   import "./index.css";
   import ChatWindow from "./ChatWindow";
+
+  import languageOptions from "../../constants/languageOptions";
   
   const ContextMenu = ({ x, y, show, options, onClose }) => {
     if (!show) return null;
@@ -40,6 +42,7 @@ import React, {
     toc,
     overview,
     content,
+    language
   }) => {
     // Context menu state
     const [contextMenu, setContextMenu] = useState({
@@ -48,6 +51,11 @@ import React, {
       y: 0,
       selectedText: "",
     });
+
+    const getLabelFromCode = (code) => {
+      const lang = languageOptions.find((l) => l.code === code);
+      return lang ? lang.label : "English (USA)";
+  };
   
     // Chat state
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -77,7 +85,9 @@ import React, {
     // Generic API call
     const callApi = useCallback(async payload => {
       console.log("⏳ Sending payload:", payload);
-      const res = await fetch("http://127.0.0.1:8000/chatbot_qa", {
+      const res = await fetch(`http://127.0.0.1:8000/chatbot_qa?language=${encodeURIComponent(
+        getLabelFromCode(language)
+    )}`, {
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/json" },
         body: JSON.stringify(payload),

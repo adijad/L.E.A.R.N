@@ -449,6 +449,7 @@ def generate_question_response(
     question: str,
     overview: str,
     content: str,
+    language: Language = Language.English_USA
 ) -> str:
     toc_str = "\n".join(f"- {item}" for item in toc)
     user_prompt = f"""
@@ -477,7 +478,7 @@ Answer the student's question clearly and informatively. Use the provided conten
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful educational tutor who answers student questions using the provided content.",
+                "content": f"You are a helpful educational tutor who answers student questions in {language.value} using the provided content.",
             },
             {"role": "user", "content": user_prompt},
         ],
@@ -490,7 +491,7 @@ Answer the student's question clearly and informatively. Use the provided conten
 
 
 def generate_learn_response(
-    topic: str, selected_text: str, overview: str, content: str
+    topic: str, selected_text: str, overview: str, content: str, language: Language = Language.English_USA,
 ) -> str:
     user_prompt = f"""
 The student is learning about "{topic}" and would like to understand this paragraph in more depth:
@@ -510,7 +511,7 @@ Explain the selected text n a detailed, engaging, and easy-to-understand way. Us
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful AI tutor. Provide detailed explanations using the context provided by the user.",
+                "content": f"You are a helpful AI tutor. Provide detailed explanations in {language.value} using the context provided by the user.",
             },
             {"role": "user", "content": user_prompt},
         ],
@@ -523,7 +524,7 @@ Explain the selected text n a detailed, engaging, and easy-to-understand way. Us
 
 
 def generate_clarify_response(
-    topic: str, selected_text: str, overview: str, content: str
+    topic: str, selected_text: str, overview: str, content: str, language: Language = Language.English_USA,
 ) -> str:
     user_prompt = f"""
 The student is learning about "{topic}" and would like clarification on this phrase:
@@ -543,7 +544,7 @@ Clarify what the selected phrase means in this context. If it's a reference to p
         messages=[
             {
                 "role": "system",
-                "content": "You are an AI tutor that clarifies educational content precisely based on the provided paragraph and topic context.",
+                "content": f"You are an AI tutor that clarifies educational content precisely in {language.value} based on the provided paragraph and topic context.",
             },
             {"role": "user", "content": user_prompt},
         ],
@@ -855,7 +856,7 @@ async def generate_lesson(
 
 
 @app.post("/chatbot_qa")
-async def chatbot_qa(request: ChatRequest):
+async def chatbot_qa(request: ChatRequest, language: Language = Language.English_USA,):
     topic = request.topic.strip()
     lesson_name = request.lesson_name.strip()
     question = request.question.strip()
@@ -864,7 +865,14 @@ async def chatbot_qa(request: ChatRequest):
     overview = request.overview.strip()
     content = request.content.strip()
     mode = request.mode.strip().lower()
+    
+    if language.value not in [lang.value for lang in Language]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The language '{language.value}' is not supported.",
+        )
 
+    
     if not selected_text or not toc or not overview or not content or not mode:
         raise HTTPException(
             status_code=400, detail="Missing required fields in request body."
@@ -878,40 +886,40 @@ async def chatbot_qa(request: ChatRequest):
     # 🔀 Mode switch
     if mode == "question":
 
-        # ✅ Basic validations
-        if not question or len(question) < 3 or re.fullmatch(r"[\W\d\s]+", question):
-            return {
-                "status": "invalid",
-                "message": "Please enter a meaningful question.",
-            }
+        # # ✅ Basic validations
+        # if not question or len(question) < 3 or re.fullmatch(r"[\W\d\s]+", question):
+        #     return {
+        #         "status": "invalid",
+        #         "message": "Please enter a meaningful question.",
+        #     }
 
-        # 🛡️ Moderation
-        mod_result = question_moderation_chain.invoke({"input": question})
-        match = re.search(
-            r"Category:\s*(\w+).*?Reason:\s*(.*)", mod_result.content, re.DOTALL
-        )
-        if not match or match.group(1).strip().lower() != "safe":
-            reason = (
-                match.group(2).strip() if match else "Could not evaluate the question."
-            )
-            raise HTTPException(
-                status_code=400, detail=f"Question rejected by moderation: {reason}"
-            )
+        # # 🛡️ Moderation
+        # mod_result = question_moderation_chain.invoke({"input": question})
+        # match = re.search(
+        #     r"Category:\s*(\w+).*?Reason:\s*(.*)", mod_result.content, re.DOTALL
+        # )
+        # if not match or match.group(1).strip().lower() != "safe":
+        #     reason = (
+        #         match.group(2).strip() if match else "Could not evaluate the question."
+        #     )
+        #     raise HTTPException(
+        #         status_code=400, detail=f"Question rejected by moderation: {reason}"
+        #     )
 
-        if not check_question_relevance(topic, selected_text, question):
-            return {
-                "status": "off-topic",
-                "message": f"Please ask something relevant to the current lesson on '{topic}'.",
-            }
+        # if not check_question_relevance(topic, selected_text, question):
+        #     return {
+        #         "status": "off-topic",
+        #         "message": f"Please ask something relevant to the current lesson on '{topic}'.",
+        #     }
         answer = generate_question_response(
-            topic, selected_text, toc, question, overview, content
+            topic, selected_text, toc, question, overview, content, language
         )
 
     elif mode == "learn":
-        answer = generate_learn_response(topic, selected_text, overview, content)
+        answer = generate_learn_response(topic, selected_text, overview, content, language)
 
     elif mode == "clarify":
-        answer = generate_clarify_response(topic, selected_text, overview, content)
+        answer = generate_clarify_response(topic, selected_text, overview, content, language)
 
     else:
         raise HTTPException(
