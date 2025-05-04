@@ -965,10 +965,10 @@ const LessonPage = () => {
             key={index}
             className={
               index < currentLessonIndex
-                ? "toc-visited"
+                ? "toc-visited-new"
                 : index === currentLessonIndex
-                ? "toc-current"
-                : "toc-locked"
+                ? "toc-current-new"
+                : "toc-locked-new"
             }
           >
             {item}

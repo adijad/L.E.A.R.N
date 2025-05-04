@@ -145,8 +145,8 @@ body {
     margin-right: 8px;
   }
   
-  .toc-visited {
-    background: #26105778;
+  .toc-visited-new {
+    background: rgb(255, 255, 255);
     color: #16a34a;
   }
   
@@ -154,8 +154,8 @@ body {
     background: #22c55e;
   }
   
-  .toc-current {
-    background: rgba(25, 3, 73, 0.76);
+  .toc-current-new {
+    background: rgb(255, 255, 255);
     color: #2563eb;
     font-weight: 600;
   }
@@ -414,6 +414,18 @@ body {
 
 /* laoding while translating */
 .loader-layout {
+    background: linear-gradient(
+            rgba(10, 10, 30, 0.7),
+            rgba(10, 10, 30, 0.7)
+    ),
+    url('../../resources/images/bg.png') no-repeat center center/cover;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
     position: fixed;
     /* Use fixed to overlay the entire screen */
     top: 0;
