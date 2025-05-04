@@ -38,7 +38,7 @@ body {
 .lesson-wrapper {
     display: flex;
   }
-  
+
   /* Sidebar */
   .lesson-sidebar {
     position: sticky;               /* Make it sticky instead of fixed */
@@ -61,8 +61,8 @@ body {
   .lesson-sidebar.collapsed {
     transform: translateX(-100%);
   }
-  
-  
+
+
   .sidebar-toggle-button {
     position: absolute;
     right: -50px;
@@ -82,7 +82,7 @@ body {
     align-items: center;
     justify-content: center;
   }
-  
+
   /* Tooltip */
 .sidebar-toggle-button::after {
     content: 'Course Progress';

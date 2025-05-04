@@ -9,7 +9,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #2c3e50, #30B3C6);
+  background: linear-gradient(135deg, #35217e, #000);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow-x: clip; /* Add this line */
 }
