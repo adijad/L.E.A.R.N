@@ -2,24 +2,51 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import './index.css'; // Your existing styles
+import './index.css'; // Your shared styles
 
 // --- Chat Message Component ---
 const ChatMessage = ({ message }) => {
   const { sender, text, type } = message;
   const messageClass = `chat-message ${sender === 'bot' ? 'bot' : 'user'} type-${type}`;
 
+  // If it's a user‐submitted message, check for our three prefixes:
+  let content;
+  if (sender === 'user') {
+    let prefixClass, prefixText, rest;
+    if (text.startsWith('Learn more')) {
+      prefixText = 'Learn more';
+      prefixClass = 'highlight-learn';
+    } else if (text.startsWith('Clarify')) {
+      prefixText = 'Clarify';
+      prefixClass = 'highlight-clarify';
+    } else if (text.startsWith('I have a question regarding')) {
+      prefixText = 'I have a question regarding';
+      prefixClass = 'highlight-question';
+    }
+
+    if (prefixText) {
+      rest = text.slice(prefixText.length);
+      content = (
+        <>
+          <span className={prefixClass}>{prefixText}</span>
+          <span>{rest}</span>
+        </>
+      );
+    } else {
+      content = <span>{text}</span>;
+    }
+  } else {
+    // Bot message → render markdown
+    content = (
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {text}
+      </ReactMarkdown>
+    );
+  }
+
   return (
     <div className={messageClass}>
-      <div className="message-bubble">
-        {sender === 'bot' ? (
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {text}
-          </ReactMarkdown>
-        ) : (
-          <p>{text}</p>
-        )}
-      </div>
+      <div className="message-bubble">{content}</div>
     </div>
   );
 };
@@ -29,17 +56,11 @@ const ChatWindow = ({ isOpen, messages = [], showInput, onClose, onQuestionSubmi
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
 
-  // scroll to bottom when messages change or window opens
   useEffect(() => {
-    if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isOpen]);
 
-  const handleInputChange = (e) => {
-    setInputValue(e.target.value);
-  };
-
+  const handleInputChange = (e) => setInputValue(e.target.value);
   const handleSubmit = (e) => {
     e.preventDefault();
     const trimmed = inputValue.trim();
@@ -53,28 +74,23 @@ const ChatWindow = ({ isOpen, messages = [], showInput, onClose, onQuestionSubmi
 
   return (
     <div className="chat-window-container">
-      {/* Header */}
       <div className="chat-header">
-        <h3>Chat Assistant</h3>
+        <h3>L.E.A.R.N Assistant</h3>
         <button
           className="chat-close-button"
           onClick={onClose}
           title="Close Chat"
           aria-label="Close Chat"
-        >
-          ✕
-        </button>
+        >✕</button>
       </div>
 
-      {/* Messages */}
       <div className="chat-messages-area">
-        {messages.map(msg =>
+        {messages.map(msg => 
           msg.type !== 'question_prompt' && <ChatMessage key={msg.id} message={msg} />
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
       {showInput && (
         <form className="chat-input-area" onSubmit={handleSubmit}>
           <input
@@ -85,9 +101,7 @@ const ChatWindow = ({ isOpen, messages = [], showInput, onClose, onQuestionSubmi
             aria-label="Type your question"
             autoFocus
           />
-          <button type="submit" disabled={!inputValue.trim()}>
-            Send
-          </button>
+          <button type="submit" disabled={!inputValue.trim()}>Send</button>
         </form>
       )}
     </div>

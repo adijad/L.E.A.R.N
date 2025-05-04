@@ -1003,10 +1003,11 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 15px;
     background: linear-gradient(90deg, #f5f3ff, #ede9fe); /* Light violet gradient */
+    padding: 12px 15px;
     border-bottom: 1px solid #e2e8f0;
-    flex-shrink: 0; /* Prevent header from shrinking */
+    flex-shrink: 0; 
+    /* Prevent header from shrinking */
 }
 
 .chat-header h3 {
@@ -1027,6 +1028,7 @@ body {
     line-height: 1;
     border-radius: 4px;
     transition: color 0.2s ease, background-color 0.2s ease;
+    width: auto;
 }
 
 .chat-close-button:hover {
@@ -1151,3 +1153,45 @@ body {
     text-overflow: ellipsis;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
+
+/* 1) Stronger chat-window border */
+.chat-window-container {
+    border: 2px solid #8b5cf6; /* Violet border */
+  }
+  
+  /* 2) Highlight styles for the three prefixes */
+  .highlight-learn {
+    background-color: #aba3d7; /* Very light violet */
+    font-weight: 600;
+    padding: 0 4px;
+    border-radius: 4px;
+  }
+  
+  .highlight-clarify {
+    background-color: #8aa1ec; /* Light indigo */
+    font-weight: 600;
+    padding: 0 4px;
+    border-radius: 4px;
+  }
+  
+  .highlight-question {
+    background-color: #d48aeb; /* Light yellow */
+    font-weight: 600;
+    padding: 0 4px;
+    border-radius: 4px;
+  }
+  
+  /* 3) Markdown heading colors in bot bubbles */
+  .chat-message.bot .message-bubble h1 {
+    color: #4f46e5; /* Indigo-700 */
+  }
+  .chat-message.bot .message-bubble h2 {
+    color: #7c3aed; /* Violet-600 */
+  }
+  .chat-message.bot .message-bubble h3 {
+    color: #9333ea; /* Violet-500 */
+  }
+  .chat-message.bot .message-bubble h4 {
+    color: #c084fc; /* Violet-300 */
+  }
+  
