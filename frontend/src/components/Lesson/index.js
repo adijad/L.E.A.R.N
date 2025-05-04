@@ -8,6 +8,9 @@ import React, {
 import { useLocation, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"; // If using Font Awesome
 import { faVolumeUp } from "@fortawesome/free-solid-svg-icons"; // Example volume up icon
+import { faArrowLeft, faArrowRight } from "@fortawesome/free-solid-svg-icons";
+import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
+
 
 import axios from "axios";
 import {
@@ -627,6 +630,8 @@ const LessonPage = () => {
                 { headers: { "Content-Type": "application/json" } }
             );
 
+            console.log(response)
+
             const lessonData = response.data.lesson.lesson || response.data.lesson;
             const referencesData = response.data.lesson.references || [];
 
@@ -939,37 +944,40 @@ const LessonPage = () => {
     if (error) return <div className="lesson-error">⚠️ {error}</div>;
 
     return (
-        <div className="lesson-layout">
-            <aside className="lesson-sidebar">
-                <div className="lesson-toc-header">
-                    <h3>Course Progress</h3>
-                    <button
-                        className="collapse-toggle"
-                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    >
-                        {isSidebarCollapsed ? "▶" : "◀"}
-                    </button>
-                </div>
 
-                {!isSidebarCollapsed && (
-                    <ul className="lesson-toc">
-                        {toc?.map((item, index) => (
-                            <li
-                                key={index}
-                                className={
-                                    index < currentLessonIndex
-                                        ? "toc-visited"
-                                        : index === currentLessonIndex
-                                            ? "toc-current"
-                                            : "toc-locked"
-                                }
-                            >
-                                {item}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </aside>
+                  
+                  <div className="lesson-wrapper">
+  {/* Sidebar */}
+  <aside className={`lesson-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+  <button
+    className="sidebar-toggle-button"
+    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+  >
+  <FontAwesomeIcon icon={isSidebarCollapsed ? faArrowRight : faArrowLeft} />
+  </button>
+
+  {!isSidebarCollapsed && (
+    <>
+      <h3 className="sidebar-heading">Course Progress</h3>
+      <ul className="lesson-toc">
+        {toc?.map((item, index) => (
+          <li
+            key={index}
+            className={
+              index < currentLessonIndex
+                ? "toc-visited"
+                : index === currentLessonIndex
+                ? "toc-current"
+                : "toc-locked"
+            }
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
+    </>
+  )}
+</aside>
 
             {/* Main Lesson Content */}
             <div className="lesson-container" ref={contentRef}>
