@@ -278,8 +278,8 @@ body {
 
 .toc-language-selector {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 60px;
+  right: 80px;
   z-index: 10; /* Ensure it's above other card content */
   margin-bottom: 1rem;
   display: flex;
