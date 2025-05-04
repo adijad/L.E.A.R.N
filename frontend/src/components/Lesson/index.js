@@ -311,7 +311,14 @@ const MemoryMatch = ({ title = "Memory Match", pairs = [] }) => {
                         >
                             <div className="memory-card-inner">
                                 <div className="memory-card-front">{c.content}</div>
-                                <div className="memory-card-back">?</div>
+                                <div className="memory-card-back">
+  {matched.includes(i) ? (
+    <FontAwesomeIcon icon={faCircleCheck} size="2x" />
+  ) : (
+    "?"
+  )}
+</div>
+
                             </div>
                         </div>
                     );

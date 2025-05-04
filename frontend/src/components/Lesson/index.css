@@ -842,24 +842,14 @@ body {
   }
   
   .memory-card-front {
-    background-color: #3b82f6;
+    background-color: #7700ff;
     color: white;
   }
   
   .memory-card-back {
     background-color: #22c55e;
-    color: #1e293b;
+    color: white;
     transform: rotateY(180deg);
-  }
-  
-  /* Matched cards show green */
-  .memory-card.matched .memory-card-front {
-    background-color: #22c55e;
-  }
-  
-  .memory-card.matched .memory-card-back {
-    background-color: #bbf7d0;
-    color: #15803d;
   }
   
   
