@@ -1,49 +1,55 @@
 import asyncio
+import json
 import os
+import re
 import sys
+import threading
+import time
 import webbrowser
-from typing import List
+from enum import Enum
+from typing import List, Literal
 from xml.etree import ElementTree
 
+import openai
+import replicate
 import requests
+import uvicorn
 from bs4 import BeautifulSoup
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
 from langchain.tools import Tool
 from langchain_community.tools import WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper
-from langchain_google_genai import (ChatGoogleGenerativeAI,
-                                    GoogleGenerativeAIEmbeddings)
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'RAG_for_server_testing')))
-import json
-import os
-import re
-import time
-from enum import Enum
-from typing import List
-from typing import Literal
-import openai
-import uvicorn
-from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from langchain_core.prompts import (ChatPromptTemplate,
-                                    HumanMessagePromptTemplate,
-                                    MessagesPlaceholder,
-                                    SystemMessagePromptTemplate)
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    MessagesPlaceholder,
+    SystemMessagePromptTemplate,
+)
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from openai import OpenAI
 from pydantic import BaseModel
 from RAG_for_server_testing import tools
-
 from tts_converter import generate_tts_audio
+import asyncio
+import replicate
+from typing import List
 
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "RAG_code"))
+)
+
+sys.path.append(
+    os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "RAG_for_server_testing")
+    )
 )
 
 # ------------------------------
@@ -56,27 +62,29 @@ client = OpenAI(
     api_key="REMOVED_OPENAI_API_KEY"
 )
 
+async_client = openai.AsyncClient(api_key="REMOVED_OPENAI_API_KEY")
+
 # ------------------------------
 # Gemini Content Moderation LLM
 # ------------------------------
 moderation_llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash-8b",
-    temperature=0,
-    max_tokens=256
+    model="gemini-1.5-flash-8b", temperature=0, max_tokens=256
 )
 
-moderation_prompt = ChatPromptTemplate.from_messages([
-    SystemMessagePromptTemplate.from_template(
-        "You are a strict content moderation assistant for a learning platform.\n"
-        "Your job is to evaluate whether a user-submitted topic is appropriate for educational content.\n"
-        "You must respond with a clear moderation label: Safe, Offensive, Harassment, Hate, NSFW, or Uncertain.\n"
-        "Then briefly explain the reason behind your classification."
-    ),
-    HumanMessagePromptTemplate.from_template(
-        'Evaluate the following topic: "{input}"\n\n'
-        'Respond in the format:\nCategory: <label>\nReason: <short explanation>'
-    )
-])
+moderation_prompt = ChatPromptTemplate.from_messages(
+    [
+        SystemMessagePromptTemplate.from_template(
+            "You are a strict content moderation assistant for a learning platform.\n"
+            "Your job is to evaluate whether a user-submitted topic is appropriate for educational content.\n"
+            "You must respond with a clear moderation label: Safe, Offensive, Harassment, Hate, NSFW, or Uncertain.\n"
+            "Then briefly explain the reason behind your classification."
+        ),
+        HumanMessagePromptTemplate.from_template(
+            'Evaluate the following topic: "{input}"\n\n'
+            "Respond in the format:\nCategory: <label>\nReason: <short explanation>"
+        ),
+    ]
+)
 
 moderation_chain = moderation_prompt | moderation_llm
 
@@ -84,42 +92,44 @@ moderation_chain = moderation_prompt | moderation_llm
 # Gemini Relevance Moderation LLM
 # ------------------------------
 
-relevance_prompt = ChatPromptTemplate.from_messages([
-    SystemMessagePromptTemplate.from_template(
-        "You are an educational topic validator for a learning platform. Your job is to decide whether a user-submitted topic is suitable for generating a structured, multi-part educational lesson (including overview, content, takeaways, etc.).\n\n"
-        "Label the topic as:\n"
-        "- Educational: if it has enough depth, specificity, or academic potential to build a lesson.\n"
-        "- Trivial: if it is too vague, overly simple, generic, or unfit for structured learning (e.g., 'spoon', 'blue', 'ball').\n\n"
-        "Examples:\n"
-        "✔ Educational: 'Photosynthesis', 'Introduction to Quantum Computing', 'The Cold War'\n"
-        "✘ Trivial: 'Spoon', 'Red', 'Chair', 'Funny things'\n\n"
-        "Only return this format. Do not include any additional content, explanations, or disclaimers."
-    ),
-    HumanMessagePromptTemplate.from_template(
-        'Evaluate this topic: \"{input}\"\n\n'
-        'Respond in the format:\nCategory: <label>\nReason: <short explanation>'
-    )
-])
+relevance_prompt = ChatPromptTemplate.from_messages(
+    [
+        SystemMessagePromptTemplate.from_template(
+            "You are an educational topic validator for a learning platform. Your job is to decide whether a user-submitted topic is suitable for generating a structured, multi-part educational lesson (including overview, content, takeaways, etc.).\n\n"
+            "Label the topic as:\n"
+            "- Educational: if it has enough depth, specificity, or academic potential to build a lesson.\n"
+            "- Trivial: if it is too vague, overly simple, generic, or unfit for structured learning (e.g., 'spoon', 'blue', 'ball').\n\n"
+            "Examples:\n"
+            "✔ Educational: 'Photosynthesis', 'Introduction to Quantum Computing', 'The Cold War'\n"
+            "✘ Trivial: 'Spoon', 'Red', 'Chair', 'Funny things'\n\n"
+            "Only return this format. Do not include any additional content, explanations, or disclaimers."
+        ),
+        HumanMessagePromptTemplate.from_template(
+            'Evaluate this topic: "{input}"\n\n'
+            "Respond in the format:\nCategory: <label>\nReason: <short explanation>"
+        ),
+    ]
+)
 relevance_chain = relevance_prompt | moderation_llm
 
 # ------------------------------
 # Chatbot Relevance LLM
 # ------------------------------
 
-chatbot_relevance_prompt = ChatPromptTemplate.from_messages([
-    SystemMessagePromptTemplate.from_template(
-        "You are a strict content filter for an educational assistant.\n"
-        "Check if the user's question is relevant to the topic and selected paragraph.\n"
-        "Respond exactly in this format:\n"
-        "Category: <Relevant or Off-topic>\n"
-        "Reason: <short reason>"
-    ),
-    HumanMessagePromptTemplate.from_template(
-        "Topic: {topic}\n\n"
-        "Paragraph: {paragraph}\n\n"
-        "Question: {question}"
-    )
-])
+chatbot_relevance_prompt = ChatPromptTemplate.from_messages(
+    [
+        SystemMessagePromptTemplate.from_template(
+            "You are a strict content filter for an educational assistant.\n"
+            "Check if the user's question is relevant to the topic and selected paragraph.\n"
+            "Respond exactly in this format:\n"
+            "Category: <Relevant or Off-topic>\n"
+            "Reason: <short reason>"
+        ),
+        HumanMessagePromptTemplate.from_template(
+            "Topic: {topic}\n\n" "Paragraph: {paragraph}\n\n" "Question: {question}"
+        ),
+    ]
+)
 chatbot_relevance_chain = chatbot_relevance_prompt | moderation_llm
 
 
@@ -127,18 +137,20 @@ chatbot_relevance_chain = chatbot_relevance_prompt | moderation_llm
 # Chatbot moderation LLM
 # ------------------------------
 
-question_moderation_prompt = ChatPromptTemplate.from_messages([
-    SystemMessagePromptTemplate.from_template(
-        "You are a strict content moderation assistant.\n"
-        "Your job is to evaluate whether a user's question is appropriate to be answered by an educational chatbot.\n"
-        "You must respond in this format:\n"
-        "Category: <Safe, Offensive, NSFW, Harassment, Hate, Uncertain>\n"
-        "Reason: <short explanation>"
-    ),
-    HumanMessagePromptTemplate.from_template(
-        "Evaluate the following question:\n\n{input}"
-    )
-])
+question_moderation_prompt = ChatPromptTemplate.from_messages(
+    [
+        SystemMessagePromptTemplate.from_template(
+            "You are a strict content moderation assistant.\n"
+            "Your job is to evaluate whether a user's question is appropriate to be answered by an educational chatbot.\n"
+            "You must respond in this format:\n"
+            "Category: <Safe, Offensive, NSFW, Harassment, Hate, Uncertain>\n"
+            "Reason: <short explanation>"
+        ),
+        HumanMessagePromptTemplate.from_template(
+            "Evaluate the following question:\n\n{input}"
+        ),
+    ]
+)
 
 question_moderation_chain = question_moderation_prompt | moderation_llm
 
@@ -170,6 +182,7 @@ app.add_middleware(
 # ------------------------------
 # Language Enum
 # ------------------------------
+
 
 class Language(Enum):
     Arabic_Saudi_Arabia = "Arabic (Saudi Arabia)"
@@ -223,7 +236,7 @@ LANGUAGE_TO_VOICE_ID = {
     Language.Danish: "6SjhOkgKPuHxm8q0eIyp",
     Language.Dutch: "UNBIyLbtFB9k7FKW8wJv",
     Language.English_Australia: "sai9UY7iXkRDSsXHR0bZ",
-    Language.English_Canada:"y26Xv4PQ7Ftbu1mfaEFY",
+    Language.English_Canada: "y26Xv4PQ7Ftbu1mfaEFY",
     Language.English_USA: "lLM2bI7XZWLA1bTu2pPJ",
     Language.English_UK: "jB2lPb5DhAX6l1TLkKXy",
     Language.Filipino: "8eI7a7dYeWINkpv4iCLy",
@@ -262,13 +275,16 @@ LANGUAGE_TO_VOICE_ID = {
 class TopicRequest(BaseModel):
     topic: str
 
+
 class TTSRequest(BaseModel):
     text: str
+
 
 class LessonRequest(BaseModel):
     topic: str
     lesson_name: str
     toc: List[str]
+
 
 class ChatRequest(BaseModel):
     topic: str
@@ -280,6 +296,7 @@ class ChatRequest(BaseModel):
     content: str
     mode: Literal["question", "clarify", "learn"]
 
+
 # ------------------------------
 # Utility Functions
 # ------------------------------
@@ -290,17 +307,19 @@ llm = ChatOpenAI(
     model="gpt-4o-mini",
     temperature=0,
     max_tokens=700,
-    openai_api_key=os.getenv("OPENAI_API_KEY")
+    openai_api_key=os.getenv("OPENAI_API_KEY"),
 )
 
-updated_prompt = ChatPromptTemplate.from_messages([
-    SystemMessagePromptTemplate.from_template(
-        "You are a helpful assistant. When answering a question, always include both the content and the source URL if available."
-    ),
-    MessagesPlaceholder(variable_name="chat_history", optional=True),
-    HumanMessagePromptTemplate.from_template("{input}"),
-    MessagesPlaceholder(variable_name="agent_scratchpad"),
-])
+updated_prompt = ChatPromptTemplate.from_messages(
+    [
+        SystemMessagePromptTemplate.from_template(
+            "You are a helpful assistant. When answering a question, always include both the content and the source URL if available."
+        ),
+        MessagesPlaceholder(variable_name="chat_history", optional=True),
+        HumanMessagePromptTemplate.from_template("{input}"),
+        MessagesPlaceholder(variable_name="agent_scratchpad"),
+    ]
+)
 
 # ------------------------------
 # Step 2: Define Tools and Agent
@@ -312,6 +331,7 @@ agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
 # ------------------------------
 # RAG Retrieval Function
 # ------------------------------
+
 
 def rag_retrieve(query: str) -> list:
     try:
@@ -338,9 +358,11 @@ def rag_retrieve(query: str) -> list:
         print(f" Error in RAG retrieval: {e}")
         return ["Error in retrieval."]
 
+
 # ------------------------------
 # Step 2: Extract and Clean JSON
 # ------------------------------
+
 
 def clean_json_response(response_text):
     """Extracts JSON from response text and ensures valid parsing."""
@@ -363,28 +385,6 @@ def clean_json_response(response_text):
         print(" JSON Parse Failed Again:", e)
         return None
 
-# ------------------------------
-# Step 3: Load All Previous Lessons for Context
-# ------------------------------
-
-# def load_previous_lessons(topic):
-#     """Loads all previous lessons for the topic to use as context."""
-#     folder = topic.replace(" ", "_")
-#     texts = []
-#     if os.path.exists(folder):
-#         for filename in sorted(os.listdir(folder)):
-#             if filename.endswith(".json"):
-#                 filepath = os.path.join(folder, filename)
-#                 with open(filepath, "r") as f:
-#                     lesson_json = json.load(f)
-#                     if "lesson" in lesson_json:
-#                         title = lesson_json["lesson"]["title"]
-#                         overview = lesson_json["lesson"]["overview"]
-#                         content = lesson_json["lesson"]["content"]
-#                         takeaways = lesson_json["lesson"]["takeaways"]
-#                         texts.append(f"{title}\n{overview}\n{content}\n{takeaways}")
-#     return "\n".join(texts) if texts else ""
-
 
 def load_previous_lessons(topic):
     folder = topic.replace(" ", "_")
@@ -401,6 +401,8 @@ def load_previous_lessons(topic):
                             f"{l.get('title', '')}\n{l.get('overview', '')}\n{l.get('content', '')}\n{l.get('takeaways', '')}"
                         )
     return "\n".join(texts) if texts else ""
+
+
 # ------------------------------
 # Step 5: Save Generated Lesson to File
 # ------------------------------
@@ -423,23 +425,31 @@ def save_lesson(topic, lesson_name, lesson_data):
 # Step 6: Chatbot Question-Answering logic
 # ------------------------------
 
+
 def check_question_relevance(topic: str, paragraph: str, question: str) -> bool:
     try:
-        result = chatbot_relevance_chain.invoke({
-            "topic": topic,
-            "paragraph": paragraph,
-            "question": question
-        })
+        result = chatbot_relevance_chain.invoke(
+            {"topic": topic, "paragraph": paragraph, "question": question}
+        )
         match = re.search(r"Category:\s*(\w+)", result.content)
         return match and match.group(1).lower() == "relevant"
     except Exception as e:
         print(f"❌ Relevance check failed: {e}")
         return False
 
+
 # ------------------------------
 # This function generates an answer when mode is "question"
 
-def generate_question_response(topic: str, selected_text: str, toc: List[str], question: str, overview: str, content: str) -> str:
+
+def generate_question_response(
+    topic: str,
+    selected_text: str,
+    toc: List[str],
+    question: str,
+    overview: str,
+    content: str,
+) -> str:
     toc_str = "\n".join(f"- {item}" for item in toc)
     user_prompt = f"""
 You are a helpful educational tutor. The student is learning about "{topic}".
@@ -467,20 +477,21 @@ Answer the student's question clearly and informatively. Use the provided conten
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful educational tutor who answers student questions using the provided content."
+                "content": "You are a helpful educational tutor who answers student questions using the provided content.",
             },
-            {
-                "role": "user",
-                "content": user_prompt
-            }
-        ]
+            {"role": "user", "content": user_prompt},
+        ],
     )
     return response.choices[0].message.content
+
 
 # ------------------------------
 # This function generates an answer when mode is "learn"
 
-def generate_learn_response(topic: str, selected_text: str, overview: str, content: str) -> str:
+
+def generate_learn_response(
+    topic: str, selected_text: str, overview: str, content: str
+) -> str:
     user_prompt = f"""
 The student is learning about "{topic}" and would like to understand this paragraph in more depth:
 \"\"\"{selected_text}\"\"\"
@@ -499,20 +510,21 @@ Explain the selected text n a detailed, engaging, and easy-to-understand way. Us
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful AI tutor. Provide detailed explanations using the context provided by the user."
+                "content": "You are a helpful AI tutor. Provide detailed explanations using the context provided by the user.",
             },
-            {
-                "role": "user",
-                "content": user_prompt
-            }
-        ]
+            {"role": "user", "content": user_prompt},
+        ],
     )
     return response.choices[0].message.content
+
 
 # ------------------------------
 # This function generates an answer when mode is "clarify"
 
-def generate_clarify_response(topic: str, selected_text: str, overview: str, content: str) -> str:
+
+def generate_clarify_response(
+    topic: str, selected_text: str, overview: str, content: str
+) -> str:
     user_prompt = f"""
 The student is learning about "{topic}" and would like clarification on this phrase:
 \"\"\"{selected_text}\"\"\"
@@ -531,15 +543,172 @@ Clarify what the selected phrase means in this context. If it's a reference to p
         messages=[
             {
                 "role": "system",
-                "content": "You are an AI tutor that clarifies educational content precisely based on the provided paragraph and topic context."
+                "content": "You are an AI tutor that clarifies educational content precisely based on the provided paragraph and topic context.",
             },
-            {
-                "role": "user",
-                "content": user_prompt
-            }
-        ]
+            {"role": "user", "content": user_prompt},
+        ],
     )
     return response.choices[0].message.content
+
+
+# ------------------------------
+# Step 7: Image Generation and Trivia generation
+# ------------------------------
+# ------------------------------
+# In-memory cache
+# ------------------------------
+slideshow_cache = {}
+replicate_api_token = os.getenv("Capstone_replicate_api")
+
+
+# ------------------------------
+# Generate Trivia Facts
+# ------------------------------
+def generate_trivia_facts(topic):
+    prompt = (
+        f'Generate exactly 5 short, interesting educational facts about the topic "{topic}".\n\n'
+        "Each fact should:\n"
+        "- Start with 'Did you know?'\n"
+        "- Be no more than 2 sentences\n"
+        "- Be numbered on a new line like:\n"
+        "1. Did you know? ...\n"
+        "2. Did you know? ...\n"
+        "...\n"
+        "5. Did you know? ..."
+    )
+    print(f"📚 [Trivia] Generating facts for: {topic}")
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You're an educational trivia generator. Generate facts that are relevant, interesting and informative.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+        )
+        content = response.choices[0].message.content.strip()
+        facts = re.findall(
+            r"\d+\.\s(Did you know\?.*?)(?=\n\d+\.|$)", content, re.DOTALL
+        )
+        print(f"✅ [Trivia] Found {len(facts)} facts")
+        return facts[:2]
+    except Exception as e:
+        print(f"❌ [Trivia] Error: {e}")
+        return []
+
+
+# ------------------------------
+# Generate Prompts with GPT API to feed it to the Replicate API
+# ------------------------------
+def generate_image_prompts_from_toc(topic: str, toc: List[str]) -> List[str]:
+    """
+    Generate 7 vivid, creative prompts for Flux image generation using the topic and TOC.
+    """
+    try:
+        # Build a numbered TOC string for LLM input
+        toc_string = "\n".join(f"{i+1}. {title}" for i, title in enumerate(toc[:10]))
+
+        user_prompt = (
+            f"You're a creative visual educator helping an AI generate educational illustrations for a topic: '{topic}'.\n\n"
+            f"Here’s the table of contents:\n{toc_string}\n\n"
+            f"Now write 5 short, vivid prompts (1–2 sentences each) that an image generation model like Flux can use. "
+            f"Each prompt should visualize a major moment or idea from the TOC. Use descriptive and evocative language to help the model generate detailed images.\n\n"
+            f"Format your response as:\n- Prompt 1: ...\n- Prompt 2: ...\n... up to Prompt 5."
+        )
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert in crafting visually rich prompts for educational image generation.",
+                },
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+
+        raw_output = response.choices[0].message.content
+
+        # Extract prompts using pattern
+        prompts = re.findall(r"- Prompt \d+: (.+)", raw_output)
+
+        print(f"✅ [Prompt Gen] Generated {len(prompts)} prompts")
+        return prompts[:2]
+
+    except Exception as e:
+        print(f"❌ [Prompt Gen Error]: {e}")
+        return []
+
+
+# ------------------------------
+# Generate Images with Flux
+# ------------------------------
+
+
+async def generate_image(prompt: str, i: int) -> str:
+    
+    flux_client = replicate.Client(api_token=replicate_api_token)
+    
+    try:
+        print(f"📤 [Flux Prompt {i + 1}]: {prompt}")
+        output = await flux_client.async_run(
+            "black-forest-labs/flux-1.1-pro",
+            input={"prompt": prompt}
+        )
+        url = output[0] if isinstance(output, list) else getattr(output, "url", None)
+        if url:
+            print(f"🖼️ [Image {i+1}] Success: {url}")
+            return url
+        else:
+            print(f"⚠️ [Image {i+1}] No URL in output")
+    except Exception as e:
+        print(f"❌ [Image {i+1}] Error: {e}")
+    return None
+
+
+async def generate_flux_images(prompts: List[str]) -> List[str]:
+    if not replicate_api_token:
+        print("❌ [Flux] Missing Replicate token")
+        return []
+
+    tasks = [generate_image(prompt, i) for i, prompt in enumerate(prompts)]
+    results = await asyncio.gather(*tasks)
+    return [url for url in results if url][:2] 
+
+
+async def generate_trivia_and_images(topic: str, toc: List[str]):
+    print(f"🚀 [Start] Trivia/Image generation for: {topic}")
+
+    try:
+        # ✅ Generate image prompts from TOC
+        prompts = generate_image_prompts_from_toc(topic, toc)
+        print(f"📸 [Prompts Generated] {len(prompts)} prompts:")
+        for i, p in enumerate(prompts, 1):
+            print(f"   {i}. {p}")
+
+        # ✅ Generate trivia
+        facts = generate_trivia_facts(topic)
+        print(f"📚 [Trivia] {len(facts)} facts:")
+        for i, f in enumerate(facts, 1):
+            print(f"   {i}. {f}")
+
+        # ✅ Generate images
+        image_urls = await generate_flux_images(prompts)
+        print(f"🖼️ [Images] {len(image_urls)} URLs:")
+        for i, url in enumerate(image_urls, 1):
+            print(f"   {i}. {url}")
+        
+        # ✅ Cache
+        # slideshow_cache[topic] = {"facts": facts, "image_urls": image_urls}
+        # print(f"✅ [Cache] Stored slideshow for: {topic}")
+
+    except Exception as e:
+        print(f"❌ [Generation Failed]: {e}")
+    
+    return facts, image_urls
+
 
 # ------------------------------
 # FastAPI Endpoints
@@ -547,6 +716,7 @@ Clarify what the selected phrase means in this context. If it's a reference to p
 # ------------------------------
 # Step 4: Generate Table of Contents
 # ------------------------------
+
 
 @app.post("/get_toc")
 async def get_lesson_plan(
@@ -561,22 +731,29 @@ async def get_lesson_plan(
         )
 
     mod_result = moderation_chain.invoke({"input": topic_request.topic})
-    match = re.search(r"Category:\s*(\w+).*?Reason:\s*(.*)", mod_result.content, re.DOTALL)
+    match = re.search(
+        r"Category:\s*(\w+).*?Reason:\s*(.*)", mod_result.content, re.DOTALL
+    )
     if not match or match.group(1).strip().lower() != "safe":
         reason = match.group(2).strip() if match else "Could not evaluate the topic."
-        raise HTTPException(status_code=400, detail=f"Topic rejected by moderation: {reason}")
+        raise HTTPException(
+            status_code=400, detail=f"Topic rejected by moderation: {reason}"
+        )
 
     # ✅ Step 2: Check relevance
     rel = relevance_chain.invoke({"input": topic_request.topic})
     match = re.search(r"Category:\s*(\w+).*?Reason:\s*(.*)", rel.content, re.DOTALL)
     if not match or match.group(1).strip().lower() != "educational":
         reason = match.group(2).strip() if match else "Unknown"
-        raise HTTPException(status_code=400, detail={
-            "status": "soft-block",
-            "category": "Trivial",
-            "reason": reason,
-            "allow_override": True
-        })
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "status": "soft-block",
+                "category": "Trivial",
+                "reason": reason,
+                "allow_override": True,
+            },
+        )
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -593,7 +770,9 @@ async def get_lesson_plan(
     )
     response_text = response.choices[0].message.content
     lesson_titles = re.findall(r"\d+\.\s(.+)", response_text)
-    return {"table_of_contents": lesson_titles}
+
+    trivia, image_urls = await generate_trivia_and_images(topic_request.topic, lesson_titles)
+    return {"table_of_contents": lesson_titles, "trivia": trivia, "image_urls": image_urls}
 
 
 @app.post("/get_previous_lessons")
@@ -606,6 +785,7 @@ async def get_previous_lessons(request: TopicRequest):
 # ------------------------------
 # Step 4: Generate Lesson
 # ------------------------------
+
 
 @app.post("/generate_lesson")
 async def generate_lesson(
@@ -668,9 +848,11 @@ async def generate_lesson(
     save_lesson(request.topic, request.lesson_name, lesson_data)
     return {"lesson": lesson_data}
 
+
 # ------------------------------
 # Step 5: Chatbot Question-Answering
 # ------------------------------
+
 
 @app.post("/chatbot_qa")
 async def chatbot_qa(request: ChatRequest):
@@ -684,31 +866,46 @@ async def chatbot_qa(request: ChatRequest):
     mode = request.mode.strip().lower()
 
     if not selected_text or not toc or not overview or not content or not mode:
-        raise HTTPException(status_code=400, detail="Missing required fields in request body.")
+        raise HTTPException(
+            status_code=400, detail="Missing required fields in request body."
+        )
 
     if not selected_text or not toc or not overview or not content or not mode:
-        raise HTTPException(status_code=400, detail="Missing required fields in request body.")
+        raise HTTPException(
+            status_code=400, detail="Missing required fields in request body."
+        )
 
     # 🔀 Mode switch
     if mode == "question":
 
         # ✅ Basic validations
         if not question or len(question) < 3 or re.fullmatch(r"[\W\d\s]+", question):
-            return {"status": "invalid", "message": "Please enter a meaningful question."}
+            return {
+                "status": "invalid",
+                "message": "Please enter a meaningful question.",
+            }
 
         # 🛡️ Moderation
         mod_result = question_moderation_chain.invoke({"input": question})
-        match = re.search(r"Category:\s*(\w+).*?Reason:\s*(.*)", mod_result.content, re.DOTALL)
+        match = re.search(
+            r"Category:\s*(\w+).*?Reason:\s*(.*)", mod_result.content, re.DOTALL
+        )
         if not match or match.group(1).strip().lower() != "safe":
-            reason = match.group(2).strip() if match else "Could not evaluate the question."
-            raise HTTPException(status_code=400, detail=f"Question rejected by moderation: {reason}")
+            reason = (
+                match.group(2).strip() if match else "Could not evaluate the question."
+            )
+            raise HTTPException(
+                status_code=400, detail=f"Question rejected by moderation: {reason}"
+            )
 
         if not check_question_relevance(topic, selected_text, question):
             return {
                 "status": "off-topic",
-                "message": f"Please ask something relevant to the current lesson on '{topic}'."
+                "message": f"Please ask something relevant to the current lesson on '{topic}'.",
             }
-        answer = generate_question_response(topic, selected_text, toc, question, overview, content)
+        answer = generate_question_response(
+            topic, selected_text, toc, question, overview, content
+        )
 
     elif mode == "learn":
         answer = generate_learn_response(topic, selected_text, overview, content)
@@ -717,17 +914,42 @@ async def chatbot_qa(request: ChatRequest):
         answer = generate_clarify_response(topic, selected_text, overview, content)
 
     else:
-        raise HTTPException(status_code=400, detail="Invalid mode. Choose from: question, learn, clarify.")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid mode. Choose from: question, learn, clarify.",
+        )
+
+    return {"status": "ok", "mode": mode, "answer": answer.strip()}
+
+
+# ------------------------------
+# Step 5: Serve Generated Images and Trivia
+# ------------------------------
+
+
+@app.get("/slideshow_metadata")
+async def get_slideshow_metadata(topic: str):
+    """
+    Returns trivia facts and image URLs for a topic, generated in the background after TOC generation.
+    """
+    data = slideshow_cache.get(topic)
+    if not data:
+        raise HTTPException(
+            status_code=404,
+            detail="Trivia and images not available yet. Please wait or retry.",
+        )
 
     return {
-        "status": "ok",
-        "mode": mode,
-        "answer": answer.strip()
+        "topic": topic,
+        "facts": data.get("facts", []),
+        "image_urls": data.get("image_urls", []),
     }
 
+
 # ------------------------------
-# Step 5: Generate Translated Lesson
+# Step 6: Generate Translated Lesson
 # ------------------------------
+
 
 @app.post("/translate")
 async def translate(payload: dict, language: Language = Language.English_USA):
@@ -736,8 +958,7 @@ async def translate(payload: dict, language: Language = Language.English_USA):
     """
     if language.value not in [lang.value for lang in Language]:
         raise HTTPException(
-            status_code=400,
-            detail=f"The language '{language.value}' is not supported."
+            status_code=400, detail=f"The language '{language.value}' is not supported."
         )
 
     # Build the prompt to instruct the model to translate every string value
@@ -782,22 +1003,23 @@ async def translate(payload: dict, language: Language = Language.English_USA):
     if translated_json is None:
         raise HTTPException(
             status_code=500,
-            detail="Translation failed or returned invalid JSON after multiple retries."
+            detail="Translation failed or returned invalid JSON after multiple retries.",
         )
 
     return translated_json
 
+
 # ------------------------------
-# Step 6: Generate TTS Audio
+# Step 7: Generate TTS Audio
 # ------------------------------
+
 
 @app.post("/tts")
 async def tts_generate(payload: TTSRequest, language: Language = Language.English_USA):
     text = payload.text.strip()
     if language.value not in [lang.value for lang in Language]:
         raise HTTPException(
-            status_code=400,
-            detail=f"The language '{language.value}' is not supported."
+            status_code=400, detail=f"The language '{language.value}' is not supported."
         )
 
     if not text:
@@ -805,7 +1027,10 @@ async def tts_generate(payload: TTSRequest, language: Language = Language.Englis
 
     voice_id = LANGUAGE_TO_VOICE_ID.get(language)
     if not voice_id:
-        raise HTTPException(status_code=400, detail=f"No voice configured for language: {language.value}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"No voice configured for language: {language.value}",
+        )
 
     try:
         file_path = await generate_tts_audio(text, voice_id=voice_id)
@@ -815,7 +1040,6 @@ async def tts_generate(payload: TTSRequest, language: Language = Language.Englis
         raise HTTPException(status_code=500, detail=f"TTS generation failed: {str(e)}")
 
 
-
 # ------------------------------
 # Run FastAPI Server
 # ------------------------------
@@ -823,4 +1047,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app)
-
