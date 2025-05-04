@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
 import { FaLock, FaPlay, FaCheck, FaArrowLeft } from 'react-icons/fa';
 import "./index.css";
 import languageOptions from "../../constants/languageOptions";
+import axios from "axios";
 
 const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
   const [translating, setTranslating] = useState(false);
@@ -23,6 +23,9 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
   );
   const email = localStorage.getItem("userEmail");
   const tocFromState = location.state?.toc;
+  const [lessonImages, setLessonImages] = useState([]);
+  const [lessonTrivia, setLessonTrivia] = useState([]);
+
 
   const getLabelFromCode = (code) => {
     const lang = languageOptions.find((l) => l.code === code);
@@ -52,6 +55,7 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
               { topic: currentTopic },
               { headers: { "Content-Type": "application/json" } }
           );
+          console.log("Response from /get_toc:", tocResponse); // Log the entire response
 
           if (
               tocResponse.data &&
@@ -59,6 +63,8 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
           ) {
             fetchedTOC = tocResponse.data.table_of_contents;
             setTableOfContents(fetchedTOC);
+            setLessonImages(tocResponse.data.image_urls || []);
+            setLessonTrivia(tocResponse.data.trivia || []);
             await axios.post("http://localhost:8080/api/auth/progress/saveTOC", {
               email,
               topic: currentTopic,
@@ -134,7 +140,9 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
           lesson_name: lessonName,
           toc: tableOfContents,
           email,
-          language: currentLanguage
+          language: currentLanguage,
+          lessonImages, // Pass images
+          lessonTrivia  // Pass trivia
         }
       });
     }
@@ -186,7 +194,6 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
           {loadingTOC ? (
               <div className="toc-loading">
                 <div className="loading-animation"></div>
-                <p>Loading Curriculum...</p>
               </div>
           ) : errorTOC ? (
               <p className="error">{errorTOC}</p>

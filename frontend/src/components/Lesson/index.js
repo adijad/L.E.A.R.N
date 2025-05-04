@@ -534,7 +534,11 @@ const InteractiveRenderer = ({ interactive }) => {
 ----------------------------------------------- */
 
 const LessonPage = () => {
+    const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
     const { state } = useLocation();
+    const { lessonImages = [], lessonTrivia = [] } = state || {};
+    const [currentPairIndex, setCurrentPairIndex] = useState(0);
+
     const navigate = useNavigate();
     const {
         topic,
@@ -656,6 +660,30 @@ const LessonPage = () => {
             setLoading(false);
         }
     };
+
+    // Create paired media array
+    const mediaPairs = useMemo(() => {
+        const pairs = [];
+        const maxLength = Math.max(lessonImages.length, lessonTrivia.length);
+        for (let i = 0; i < maxLength; i++) {
+            pairs.push({
+                image: lessonImages[i] || "", // Fallback to empty string if no image
+                trivia: lessonTrivia[i] || "Interesting fact loading..." // Fallback text
+            });
+        }
+        return pairs;
+    }, [lessonImages, lessonTrivia]);
+
+
+    useEffect(() => {
+        let interval;
+        if (loading && mediaPairs.length > 0) {
+            interval = setInterval(() => {
+                setCurrentPairIndex(prev => (prev + 1) % mediaPairs.length);
+            }, 5000); // Change pair every 5 seconds
+        }
+        return () => clearInterval(interval);
+    }, [loading, mediaPairs.length]);
 
     useEffect(() => {
         if (lesson_name) fetchLesson();
@@ -829,6 +857,20 @@ const LessonPage = () => {
             <div className="lesson-container" ref={contentRef}>
                 {loading && (
                 <div className="loader-layout">
+                    <div className="glass-loading-container">
+                        {/* Image and Trivia */}
+                        {mediaPairs.length > 0 && (
+                            <div className="loading-media-glass">
+                                <img
+                                    src={mediaPairs[currentPairIndex].image}
+                                    alt="Lesson visual"
+                                    className="glass-loading-image"
+                                />
+                                <div className="glass-loading-trivia">
+                                    {mediaPairs[currentPairIndex].trivia}
+                                </div>
+                            </div>
+                        )}
                     <div className="loader-container">
                         <svg
                             className="loaderSVG"
@@ -979,6 +1021,7 @@ const LessonPage = () => {
                             </circle>
                         </svg>
                     </div>
+                </div>
                 </div>
                 )}
 

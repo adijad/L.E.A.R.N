@@ -40,7 +40,7 @@ body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 14px rgba(55, 248, 254, 0.4);
+  box-shadow: 0 4px 14px rgb(119, 0, 255);
   border-radius: 16px;
   padding: 40px;
   text-align: center;
@@ -117,7 +117,7 @@ body {
 
 .language-selector select:focus {
   outline: none;
-  border-color: #00bfff;
+  border-color: #7700ff;
   box-shadow: 0 0 0 0.15rem rgba(0, 191, 255, 0.25);
 }
 
@@ -162,7 +162,7 @@ body {
 }
 
 .topic-search-input:focus {
-  border-color: #00bfff;
+  border-color: #7700ff;
   box-shadow: 0 0 0 0.15rem rgba(0, 191, 255, 0.25);
 }
 
@@ -261,7 +261,7 @@ body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 14px rgba(55, 248, 254, 0.4);
+  box-shadow: 0 4px 14px rgb(119, 0, 255);
   border-radius: 16px;
   padding: 2rem;
   width: 90%;
@@ -317,7 +317,7 @@ body {
 
 .toc-language-selector select:focus {
   outline: none;
-  border-color: #00bfff;
+  border-color: #7700ff;
   box-shadow: 0 0 0 0.15rem rgba(0, 191, 255, 0.25);
 }
 
@@ -600,7 +600,7 @@ body {
 
 .loading-animation {
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #007bff;
+  border-top: 4px solid #7700ff;
   border-radius: 50%;
   width: 50px;
   height: 50px;

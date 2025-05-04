@@ -92,7 +92,7 @@
 
 .nav-dropdown a:hover {
   background-color: #f0f4f8;
-  color: #007bff;
+  color: #7700ff;
 }
 
 /* Right: profile icon & dropdown */
@@ -110,7 +110,7 @@
 }
 
 .profile-icon:hover {
-  color: #00bfff;
+  color: #7700ff;
 }
 
 /* Profile dropdown */
@@ -143,7 +143,7 @@
 .dropdown-menu a:hover,
 .dropdown-menu button:hover {
   background-color: #f0f4f8;
-  color: #007bff;
+  color: #7700ff;
 }
 
 .dropdown-menu button {
@@ -244,7 +244,7 @@ body {
 }
 
 .topic-search-input:focus {
-  border-color: #007bff;
+  border-color: #7700ff;
   box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.25);
 }
 
@@ -282,7 +282,7 @@ body {
 
 .language-selector select:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: #7700ff;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
@@ -543,7 +543,7 @@ body {
 .scroll-button.right { right: 10px; }
 
 .scroll-button:hover {
-  background: #3b82f6;
+  background: #7700ff;
   color: white;
   transform: translateY(-50%) scale(1.1);
 }

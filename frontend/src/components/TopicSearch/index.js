@@ -58,25 +58,25 @@ const TopicSearch = () => {
                     </div>
                 )}
             </div>
-                {showTOC && (
-                    <>
-                        <div className="floating-language-selector">
-                            <label htmlFor="floating-lang">Language:</label>
-                            <select
-                                id="floating-lang"
-                                value={language}
-                                onChange={(e) => setLanguage(e.target.value)}
-                            >
-                                {languageOptions.map((lang) => (
-                                    <option key={lang.code} value={lang.code}>
-                                        {lang.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <TableOfContentsPage topic={topic} language={language} />
-                    </>
-                )}
+            {showTOC && (
+                <>
+                    <div className="floating-language-selector">
+                        <label htmlFor="floating-lang">Language:</label>
+                        <select
+                            id="floating-lang"
+                            value={language}
+                            onChange={(e) => setLanguage(e.target.value)}
+                        >
+                            {languageOptions.map((lang) => (
+                                <option key={lang.code} value={lang.code}>
+                                    {lang.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <TableOfContentsPage topic={topic} language={language} />
+                </>
+            )}
         </div>
     );
 };
