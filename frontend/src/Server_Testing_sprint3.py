@@ -565,17 +565,16 @@ replicate_api_token = os.getenv("Capstone_replicate_api")
 # ------------------------------
 # Generate Trivia Facts
 # ------------------------------
-def generate_trivia_facts(topic):
+def generate_trivia_facts(topic, language: Language = Language.English_USA):
     prompt = (
         f'Generate exactly 5 short, interesting educational facts about the topic "{topic}".\n\n'
         "Each fact should:\n"
-        "- Start with 'Did you know?'\n"
         "- Be no more than 2 sentences\n"
         "- Be numbered on a new line like:\n"
-        "1. Did you know? ...\n"
-        "2. Did you know? ...\n"
+        "1. ...\n"
+        "2. ...\n"
         "...\n"
-        "5. Did you know? ..."
+        "5. ..."
     )
     print(f"📚 [Trivia] Generating facts for: {topic}")
     try:
@@ -584,7 +583,7 @@ def generate_trivia_facts(topic):
             messages=[
                 {
                     "role": "system",
-                    "content": "You're an educational trivia generator. Generate facts that are relevant, interesting and informative.",
+                    "content": f"You're an educational trivia generator. Generate facts that are relevant, interesting and informative in {language.value}.",
                 },
                 {"role": "user", "content": prompt},
             ],
@@ -624,7 +623,7 @@ def generate_image_prompts_from_toc(topic: str, toc: List[str]) -> List[str]:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert in crafting visually rich prompts for educational image generation.",
+                    "content": "You are an expert in crafting visually rich prompts in **English** for educational image generation.",
                 },
                 {"role": "user", "content": user_prompt},
             ],
@@ -679,7 +678,7 @@ async def generate_flux_images(prompts: List[str]) -> List[str]:
     return [url for url in results if url]
 
 
-async def generate_trivia_and_images(topic: str, toc: List[str]):
+async def generate_trivia_and_images(topic: str, toc: List[str], language: Language = Language.English_USA):
     print(f"🚀 [Start] Trivia/Image generation for: {topic}")
 
     try:
@@ -690,7 +689,7 @@ async def generate_trivia_and_images(topic: str, toc: List[str]):
             print(f"   {i}. {p}")
 
         # ✅ Generate trivia
-        facts = generate_trivia_facts(topic)
+        facts = generate_trivia_facts(topic, language)
         print(f"📚 [Trivia] {len(facts)} facts:")
         for i, f in enumerate(facts, 1):
             print(f"   {i}. {f}")
@@ -700,10 +699,6 @@ async def generate_trivia_and_images(topic: str, toc: List[str]):
         print(f"🖼️ [Images] {len(image_urls)} URLs:")
         for i, url in enumerate(image_urls, 1):
             print(f"   {i}. {url}")
-        
-        # ✅ Cache
-        # slideshow_cache[topic] = {"facts": facts, "image_urls": image_urls}
-        # print(f"✅ [Cache] Stored slideshow for: {topic}")
 
     except Exception as e:
         print(f"❌ [Generation Failed]: {e}")
@@ -772,7 +767,7 @@ async def get_lesson_plan(
     response_text = response.choices[0].message.content
     lesson_titles = re.findall(r"\d+\.\s(.+)", response_text)
 
-    trivia, image_urls = await generate_trivia_and_images(topic_request.topic, lesson_titles)
+    trivia, image_urls = await generate_trivia_and_images(topic_request.topic, lesson_titles, language)
     return {"table_of_contents": lesson_titles, "trivia": trivia, "image_urls": image_urls}
 
 
@@ -928,30 +923,6 @@ async def chatbot_qa(request: ChatRequest, language: Language = Language.English
         )
 
     return {"status": "ok", "mode": mode, "answer": answer.strip()}
-
-
-# ------------------------------
-# Step 5: Serve Generated Images and Trivia
-# ------------------------------
-
-
-@app.get("/slideshow_metadata")
-async def get_slideshow_metadata(topic: str):
-    """
-    Returns trivia facts and image URLs for a topic, generated in the background after TOC generation.
-    """
-    data = slideshow_cache.get(topic)
-    if not data:
-        raise HTTPException(
-            status_code=404,
-            detail="Trivia and images not available yet. Please wait or retry.",
-        )
-
-    return {
-        "topic": topic,
-        "facts": data.get("facts", []),
-        "image_urls": data.get("image_urls", []),
-    }
 
 
 # ------------------------------
