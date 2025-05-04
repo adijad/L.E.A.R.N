@@ -593,7 +593,7 @@ def generate_trivia_facts(topic):
             r"\d+\.\s(Did you know\?.*?)(?=\n\d+\.|$)", content, re.DOTALL
         )
         print(f"✅ [Trivia] Found {len(facts)} facts")
-        return facts[:2]
+        return facts
     except Exception as e:
         print(f"❌ [Trivia] Error: {e}")
         return []
@@ -635,7 +635,7 @@ def generate_image_prompts_from_toc(topic: str, toc: List[str]) -> List[str]:
         prompts = re.findall(r"- Prompt \d+: (.+)", raw_output)
 
         print(f"✅ [Prompt Gen] Generated {len(prompts)} prompts")
-        return prompts[:2]
+        return prompts
 
     except Exception as e:
         print(f"❌ [Prompt Gen Error]: {e}")
@@ -675,7 +675,7 @@ async def generate_flux_images(prompts: List[str]) -> List[str]:
 
     tasks = [generate_image(prompt, i) for i, prompt in enumerate(prompts)]
     results = await asyncio.gather(*tasks)
-    return [url for url in results if url][:2] 
+    return [url for url in results if url]
 
 
 async def generate_trivia_and_images(topic: str, toc: List[str]):
