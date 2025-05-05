@@ -351,12 +351,12 @@ def rag_retrieve(query: str) -> list:
         references.extend([f"Source: {url.strip()}" for url in wiki_results])
 
         # ArXiv
-        arxiv_results = arxiv_with_clickable_link(query)
-        references.extend([f"Source: {url.strip()}" for url in arxiv_results])
+        # arxiv_results = arxiv_with_clickable_link(query)
+        # references.extend([f"Source: {url.strip()}" for url in arxiv_results])
 
         # PubMed
-        pubmed_urls = retrieve_pubmed_articles(query)
-        references.extend([f"Source: {url.strip()}" for url in pubmed_urls if url.strip()])
+        # pubmed_urls = retrieve_pubmed_articles(query)
+        # references.extend([f"Source: {url.strip()}" for url in pubmed_urls if url.strip()])
 
         # Gutenberg
         gutenberg_urls = gutenberg_with_clickable_link(query)
@@ -634,6 +634,10 @@ def generate_image_prompts_from_toc(topic: str, toc: List[str]) -> List[str]:
             f"Here’s the table of contents:\n{toc_string}\n\n"
             f"Now write 5 short, vivid prompts (1–2 sentences each) that an image generation model like Flux can use. "
             f"Each prompt should visualize a major moment or idea from the TOC. Use descriptive and evocative language to help the model generate detailed images.\n\n"
+            f"- All prompts MUST be safe-for-work (SFW).\n"
+            f"- No nudity, no violence, no mature or suggestive themes, and no disturbing content—even if the TOC includes strong or controversial topics.\n"
+            f"- If a TOC item implies something sensitive, **reinterpret it** creatively for a school-age audience without losing the core educational idea.\n"
+            f"- Avoid language or imagery that may be flagged by NSFW filters. Think 'museum exhibit' or 'classroom poster' levels of appropriateness.\n\n"
             f"Format your response as:\n- Prompt 1: ...\n- Prompt 2: ...\n... up to Prompt 5."
         )
 
