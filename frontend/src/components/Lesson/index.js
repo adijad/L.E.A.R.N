@@ -312,12 +312,12 @@ const MemoryMatch = ({ title = "Memory Match", pairs = [] }) => {
                             <div className="memory-card-inner">
                                 <div className="memory-card-front">{c.content}</div>
                                 <div className="memory-card-back">
-  {matched.includes(i) ? (
-    <FontAwesomeIcon icon={faCircleCheck} size="2x" />
-  ) : (
-    "?"
-  )}
-</div>
+                                    {matched.includes(i) ? (
+                                        <FontAwesomeIcon icon={faCircleCheck} size="2x" />
+                                    ) : (
+                                        "?"
+                                    )}
+                                </div>
 
                             </div>
                         </div>
@@ -543,7 +543,7 @@ const InteractiveRenderer = ({ interactive }) => {
 const LessonPage = () => {
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
     const { state } = useLocation();
-    const { lessonImages = [], lessonTrivia = [] } = state || {};
+    const { lessonImages: propLessonImages = [], lessonTrivia: propLessonTrivia = [] } = state || {};
     const [currentPairIndex, setCurrentPairIndex] = useState(0);
 
     const navigate = useNavigate();
@@ -671,15 +671,15 @@ const LessonPage = () => {
     // Create paired media array
     const mediaPairs = useMemo(() => {
         const pairs = [];
-        const maxLength = Math.max(lessonImages.length, lessonTrivia.length);
+        const maxLength = Math.max(propLessonImages.length, propLessonTrivia.length);
         for (let i = 0; i < maxLength; i++) {
             pairs.push({
-                image: lessonImages[i] || "", // Fallback to empty string if no image
-                trivia: lessonTrivia[i] || "Interesting fact loading..." // Fallback text
+                image: propLessonImages[i] || "", // Fallback to empty string if no image
+                trivia: propLessonTrivia[i] || "Interesting fact loading..." // Fallback text
             });
         }
         return pairs;
-    }, [lessonImages, lessonTrivia]);
+    }, [propLessonImages, propLessonTrivia]);
 
 
     useEffect(() => {
@@ -776,18 +776,23 @@ const LessonPage = () => {
     const handleNextLesson = async () => {
         const nextLessonName = toc[currentLessonIndex + 1];
         if (nextLessonName) {
+            setLesson(null);
+            setReferences([]);
+            setSelectedAnswers({});
+            setQuizFeedbacks({});
             navigate(`/home/lesson`, {
                 state: {
                     topic,
                     lesson_name: nextLessonName,
                     toc,
                     language: currentLanguage,
+                    lessonImages: propLessonImages,  // Ensure media props are passed
+                    lessonTrivia: propLessonTrivia
                 },
             });
         }
         try {
-            // setLoading(true);
-            setNextLessonLoad(true);
+
             const response = await axios.post(
                 `http://127.0.0.1:8000/generate_lesson?language=${encodeURIComponent(
                     getLabelFromCode(currentLanguage)
@@ -810,7 +815,7 @@ const LessonPage = () => {
             setError("Failed to load next lesson.");
         } finally {
             setNextLessonLoad(false);
-            // setLoading(false);
+            setLoading(false);
         }
     };
 
@@ -826,210 +831,210 @@ const LessonPage = () => {
 
     return (
 
-                  
-                  <div className="lesson-wrapper">
-  {/* Sidebar */}
-  <aside className={`lesson-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-  <button
-    className="sidebar-toggle-button"
-    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-  >
-  <FontAwesomeIcon icon={isSidebarCollapsed ? faArrowRight : faArrowLeft} />
-  </button>
 
-  {!isSidebarCollapsed && (
-    <>
-      <h3 className="sidebar-heading">Course Progress</h3>
-      <ul className="lesson-toc">
-        {toc?.map((item, index) => (
-          <li
-            key={index}
-            className={
-              index < currentLessonIndex
-                ? "toc-visited-new"
-                : index === currentLessonIndex
-                ? "toc-current-new"
-                : "toc-locked-new"
-            }
-          >
-            {item}
-          </li>
-        ))}
-      </ul>
-    </>
-  )}
-</aside>
+        <div className="lesson-wrapper">
+            {/* Sidebar */}
+            <aside className={`lesson-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+                <button
+                    className="sidebar-toggle-button"
+                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                >
+                    <FontAwesomeIcon icon={isSidebarCollapsed ? faArrowRight : faArrowLeft} />
+                </button>
+
+                {!isSidebarCollapsed && (
+                    <>
+                        <h3 className="sidebar-heading">Course Progress</h3>
+                        <ul className="lesson-toc">
+                            {toc?.map((item, index) => (
+                                <li
+                                    key={index}
+                                    className={
+                                        index < currentLessonIndex
+                                            ? "toc-visited-new"
+                                            : index === currentLessonIndex
+                                                ? "toc-current-new"
+                                                : "toc-locked-new"
+                                    }
+                                >
+                                    {item}
+                                </li>
+                            ))}
+                        </ul>
+                    </>
+                )}
+            </aside>
 
             {/* Main Lesson Content */}
             <div className="lesson-container" ref={contentRef}>
                 {loading && (
-                <div className="loader-layout">
-                    <div className="glass-loading-container">
-                        {/* Image and Trivia */}
-                        {mediaPairs.length > 0 && (
-                            <div className="loading-media-glass">
-                                <img
-                                    src={mediaPairs[currentPairIndex].image}
-                                    alt="Lesson visual"
-                                    className="glass-loading-image"
-                                />
-                                <div className="glass-loading-trivia">
-                                    {mediaPairs[currentPairIndex].trivia}
+                    <div className="loader-layout">
+                        <div className="glass-loading-container">
+                            {/* Image and Trivia */}
+                            {mediaPairs.length > 0 && (
+                                <div className="loading-media-glass">
+                                    <img
+                                        src={mediaPairs[currentPairIndex].image}
+                                        alt="Lesson visual"
+                                        className="glass-loading-image"
+                                    />
+                                    <div className="glass-loading-trivia">
+                                        {mediaPairs[currentPairIndex].trivia}
+                                    </div>
                                 </div>
+                            )}
+                            <div className="loader-container">
+                                <svg
+                                    className="loaderSVG"
+                                    viewBox="0 0 120 30"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <circle cx="15" cy="15" r="16" fill="#3b82f6">
+                                        <animate
+                                            attributeName="cy"
+                                            values="15;7;15;15"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                            calcMode="spline"
+                                            repeatCount="indefinite"
+                                            begin="0s"
+                                        />
+                                        <animate
+                                            attributeName="ry"
+                                            values="8;8;6;8"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            repeatCount="indefinite"
+                                            begin="0s"
+                                        />
+                                        <animate
+                                            attributeName="rx"
+                                            values="8;8;9;8"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            repeatCount="indefinite"
+                                            begin="0s"
+                                        />
+                                        <animate
+                                            attributeName="fill"
+                                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                            dur="1.6s"
+                                            repeatCount="indefinite"
+                                            begin="0s"
+                                        />
+                                    </circle>
+
+                                    <circle cx="60" cy="15" r="16" fill="#3b82f6">
+                                        <animate
+                                            attributeName="cy"
+                                            values="15;7;15;15"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                            calcMode="spline"
+                                            repeatCount="indefinite"
+                                            begin="0.4s"
+                                        />
+                                        <animate
+                                            attributeName="ry"
+                                            values="8;8;6;8"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            repeatCount="indefinite"
+                                            begin="0.4s"
+                                        />
+                                        <animate
+                                            attributeName="rx"
+                                            values="8;8;9;8"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            repeatCount="indefinite"
+                                            begin="0.4s"
+                                        />
+                                        <animate
+                                            attributeName="fill"
+                                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                            dur="1.6s"
+                                            repeatCount="indefinite"
+                                            begin="0.4s"
+                                        />
+                                    </circle>
+
+                                    <circle cx="105" cy="15" r="16" fill="#3b82f6">
+                                        <animate
+                                            attributeName="cy"
+                                            values="15;7;15;15"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                            calcMode="spline"
+                                            repeatCount="indefinite"
+                                            begin="0.8s"
+                                        />
+                                        <animate
+                                            attributeName="ry"
+                                            values="8;8;6;8"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            repeatCount="indefinite"
+                                            begin="0.8s"
+                                        />
+                                        <animate
+                                            attributeName="rx"
+                                            values="8;8;9;8"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            repeatCount="indefinite"
+                                            begin="0.8s"
+                                        />
+                                        <animate
+                                            attributeName="fill"
+                                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                            dur="1.6s"
+                                            repeatCount="indefinite"
+                                            begin="0.8s"
+                                        />
+                                    </circle>
+                                    <circle cx="150" cy="15" r="16" fill="#3b82f6">
+                                        <animate
+                                            attributeName="cy"
+                                            values="15;7;15;15"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+                                            calcMode="spline"
+                                            repeatCount="indefinite"
+                                            begin="0.8s"
+                                        />
+                                        <animate
+                                            attributeName="ry"
+                                            values="8;8;6;8"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            repeatCount="indefinite"
+                                            begin="0.8s"
+                                        />
+                                        <animate
+                                            attributeName="rx"
+                                            values="8;8;9;8"
+                                            dur="1.6s"
+                                            keyTimes="0;0.3;0.6;1"
+                                            repeatCount="indefinite"
+                                            begin="0.8s"
+                                        />
+                                        <animate
+                                            attributeName="fill"
+                                            values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
+                                            dur="1.6s"
+                                            repeatCount="indefinite"
+                                            begin="0.8s"
+                                        />
+                                    </circle>
+                                </svg>
                             </div>
-                        )}
-                    <div className="loader-container">
-                        <svg
-                            className="loaderSVG"
-                            viewBox="0 0 120 30"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <circle cx="15" cy="15" r="16" fill="#3b82f6">
-                                <animate
-                                    attributeName="cy"
-                                    values="15;7;15;15"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
-                                    calcMode="spline"
-                                    repeatCount="indefinite"
-                                    begin="0s"
-                                />
-                                <animate
-                                    attributeName="ry"
-                                    values="8;8;6;8"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    repeatCount="indefinite"
-                                    begin="0s"
-                                />
-                                <animate
-                                    attributeName="rx"
-                                    values="8;8;9;8"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    repeatCount="indefinite"
-                                    begin="0s"
-                                />
-                                <animate
-                                    attributeName="fill"
-                                    values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
-                                    dur="1.6s"
-                                    repeatCount="indefinite"
-                                    begin="0s"
-                                />
-                            </circle>
-
-                            <circle cx="60" cy="15" r="16" fill="#3b82f6">
-                                <animate
-                                    attributeName="cy"
-                                    values="15;7;15;15"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
-                                    calcMode="spline"
-                                    repeatCount="indefinite"
-                                    begin="0.4s"
-                                />
-                                <animate
-                                    attributeName="ry"
-                                    values="8;8;6;8"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    repeatCount="indefinite"
-                                    begin="0.4s"
-                                />
-                                <animate
-                                    attributeName="rx"
-                                    values="8;8;9;8"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    repeatCount="indefinite"
-                                    begin="0.4s"
-                                />
-                                <animate
-                                    attributeName="fill"
-                                    values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
-                                    dur="1.6s"
-                                    repeatCount="indefinite"
-                                    begin="0.4s"
-                                />
-                            </circle>
-
-                            <circle cx="105" cy="15" r="16" fill="#3b82f6">
-                                <animate
-                                    attributeName="cy"
-                                    values="15;7;15;15"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
-                                    calcMode="spline"
-                                    repeatCount="indefinite"
-                                    begin="0.8s"
-                                />
-                                <animate
-                                    attributeName="ry"
-                                    values="8;8;6;8"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    repeatCount="indefinite"
-                                    begin="0.8s"
-                                />
-                                <animate
-                                    attributeName="rx"
-                                    values="8;8;9;8"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    repeatCount="indefinite"
-                                    begin="0.8s"
-                                />
-                                <animate
-                                    attributeName="fill"
-                                    values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
-                                    dur="1.6s"
-                                    repeatCount="indefinite"
-                                    begin="0.8s"
-                                />
-                            </circle>
-                            <circle cx="150" cy="15" r="16" fill="#3b82f6">
-                                <animate
-                                    attributeName="cy"
-                                    values="15;7;15;15"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    keySplines="0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
-                                    calcMode="spline"
-                                    repeatCount="indefinite"
-                                    begin="0.8s"
-                                />
-                                <animate
-                                    attributeName="ry"
-                                    values="8;8;6;8"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    repeatCount="indefinite"
-                                    begin="0.8s"
-                                />
-                                <animate
-                                    attributeName="rx"
-                                    values="8;8;9;8"
-                                    dur="1.6s"
-                                    keyTimes="0;0.3;0.6;1"
-                                    repeatCount="indefinite"
-                                    begin="0.8s"
-                                />
-                                <animate
-                                    attributeName="fill"
-                                    values="#3b82f6;#6366f1;#8b5cf6;#3b82f6"
-                                    dur="1.6s"
-                                    repeatCount="indefinite"
-                                    begin="0.8s"
-                                />
-                            </circle>
-                        </svg>
+                        </div>
                     </div>
-                </div>
-                </div>
                 )}
 
                 <div className="lesson-language-selector">
@@ -1093,8 +1098,8 @@ const LessonPage = () => {
                     <div className="lesson-quizzes">
                         <h3>📝 Knowledge Check</h3>
                         {(Array.isArray(lesson.quizzes)
-                            ? lesson.quizzes
-                            : [lesson.quizzes]
+                                ? lesson.quizzes
+                                : [lesson.quizzes]
                         ).map((quiz, quizIndex) => (
                             <div key={quizIndex} className="quiz-item">
                                 <p className="quiz-question">{quiz.question}</p>
@@ -1103,7 +1108,7 @@ const LessonPage = () => {
                                         <div
                                             key={optIndex}
                                             className={`quiz-option ${selectedAnswers[quizIndex] === option ? "selected" : ""
-                                                }`}
+                                            }`}
                                             onClick={() => handleQuizOptionClick(quizIndex, option)}
                                         >
                                             {option}
@@ -1126,8 +1131,8 @@ const LessonPage = () => {
                         <h3>🔑 Key Concepts</h3>
                         <div className="flashcard-grid">
                             {(Array.isArray(lesson.flashcards)
-                                ? lesson.flashcards
-                                : Object.entries(lesson.flashcards)
+                                    ? lesson.flashcards
+                                    : Object.entries(lesson.flashcards)
                             ).map((flashcard, index) => (
                                 <div key={index} className="flashcard">
                                     <div className="flashcard-inner">
@@ -1258,9 +1263,10 @@ const LessonPage = () => {
                             </div>
                             <button
                                 className={`proceed-button ${quizScore === 100 ? "success" : "warning"
-                                    }`}
+                                }`}
                                 onClick={() => {
                                     setShowScorePopup(false);
+                                    setLoading(true);
                                     handleNextLesson();
                                 }}
                             >

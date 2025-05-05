@@ -5,32 +5,39 @@ import "./index.css";
 import languageOptions from "../../constants/languageOptions";
 import axios from "axios";
 
-const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
+const TableOfContentsPage = ({ topic, language, toc: propToc, trivia: propTrivia, imageUrls: propImageUrls }) => {
+
   const [translating, setTranslating] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [tableOfContents, setTableOfContents] = useState([]);
   const [loadingTOC, setLoadingTOC] = useState(true);
   const [errorTOC, setErrorTOC] = useState("");
-  const [currentTopic, setCurrentTopic] = useState(propTopic || location.state?.topic || new URLSearchParams(location.search).get('topic'));
+  const [currentTopic, setCurrentTopic] = useState(topic || location.state?.topic || new URLSearchParams(location.search).get('topic'));
   const [completedLessons, setCompletedLessons] = useState([]);
   const [startIndex, setStartIndex] = useState(0);
   const [currentLanguage, setCurrentLanguage] = useState(
-      propLanguage ||
+      language ||
       location.state?.language ||
       new URLSearchParams(location.search).get("language") ||
       "English_USA"
   );
   const email = localStorage.getItem("userEmail");
   const tocFromState = location.state?.toc;
-  const [lessonImages, setLessonImages] = useState([]);
-  const [lessonTrivia, setLessonTrivia] = useState([]);
+  const [lessonImages, setLessonImages] = useState(location.state?.imageUrls || []);
+  const [lessonTrivia, setLessonTrivia] = useState(location.state?.trivia || []);
 
 
   const getLabelFromCode = (code) => {
     const lang = languageOptions.find((l) => l.code === code);
     return lang ? lang.label : "English (USA)"; // default fallback
   };
+
+  useEffect(() => {
+    setLessonImages(propImageUrls || location.state?.imageUrls || []);
+    setLessonTrivia(propTrivia || location.state?.trivia || []);
+    }, [propImageUrls, propTrivia, location.state?.imageUrls, location.state?.trivia]);
+
   useEffect(() => {
     const fetchTOCAndProgress = async () => {
       if (!currentTopic || !email) {
@@ -40,10 +47,10 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
       }
 
       try {
-        let fetchedTOC = tocFromState;
+        let fetchedTOC = tocFromState || propToc;
         let shouldFetchNewTOC = false;
 
-        if (!tocFromState) {
+        if (!tocFromState && !propToc) {
           shouldFetchNewTOC = true;
         }
 
@@ -69,6 +76,8 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
               email,
               topic: currentTopic,
               toc: fetchedTOC,
+              trivia: tocResponse.data.trivia,
+              imageUrls: tocResponse.data.image_urls
             });
           }
         } else {
@@ -93,7 +102,7 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
 
     setLoadingTOC(true);
     currentTopic && email && fetchTOCAndProgress();
-  }, [currentTopic, email, tocFromState]);
+  }, [currentTopic, email, tocFromState, propToc]);
 
   useEffect(() => {
     const translateTOC = async () => {
@@ -120,20 +129,21 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
       } catch (error) {
         console.error("Translation failed:", error);
       } finally {
-        setTranslating(false); // ✅ put this HERE inside finally
+        setTranslating(false);
       }
     };
 
-    // Don't retranslate on initial load, only when user actively switches language
     if (!loadingTOC && !errorTOC) {
-      setTranslating(true); // ✅ move this here so it's only triggered when translation starts
+      setTranslating(true);
       translateTOC();
     }
-  }, [currentLanguage]);
+  }, [currentLanguage, loadingTOC, errorTOC, tableOfContents]);
+
 
   const handleLessonClick = (lessonName, index) => {
     if (index <= startIndex) {
-
+      console.log("Navigating with lessonImages:", lessonImages);
+      console.log("Navigating with lessonTrivia:", lessonTrivia);
       navigate("/home/lesson", {
         state: {
           topic: currentTopic,
@@ -141,8 +151,8 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
           toc: tableOfContents,
           email,
           language: currentLanguage,
-          lessonImages, // Pass images
-          lessonTrivia  // Pass trivia
+          lessonImages,
+          lessonTrivia
         }
       });
     }
@@ -177,9 +187,7 @@ const TableOfContentsPage = ({ topic: propTopic, language: propLanguage }) => {
           <div className="toc-header">
             <div className="back-icon" onClick={() => navigate(-1)}>
               <FaArrowLeft/>
-
             </div>
-
             <div className="topic-title-container">
               <span className="toc-label">Table of Content</span>
               <h1>{currentTopic?.toUpperCase()}</h1>

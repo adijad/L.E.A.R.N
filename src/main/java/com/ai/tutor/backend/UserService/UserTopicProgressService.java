@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -26,15 +28,17 @@ public class UserTopicProgressService {
     @Autowired
     private UserService userService;
 
-    public void saveUserTOC(String email, String topic, List<String> toc) {
+    public void saveUserTOC(String email, String topic, List<String> toc,
+                            List<String> trivia, List<String> imageUrls) {
         Users user = userService.findByEmail(email);
 
         UserTopicProgress progress = new UserTopicProgress();
         progress.setUser(user);
         progress.setTopic(topic);
-        progress.setToc(toc); // assuming this is a List<String> field in the entity
-        progress.setCompleted(false); // initially not completed
-
+        progress.setToc(toc);
+        progress.setTrivia(trivia);
+        progress.setImageUrls(imageUrls);
+        progress.setCompleted(false);
         userTopicProgressRepository.save(progress);
     }
 
@@ -46,6 +50,20 @@ public class UserTopicProgressService {
 
     public List<UserTopicProgress> getAllProgressByUser(Users user) {
         return userTopicProgressRepository.findByUser(user);
+    }
+
+    public Map<String, Object> getTableOfContentsWithMedia(String email, String topic) {
+        Users user = userService.findByEmail(email);
+
+        return userTopicProgressRepository.findByUserAndTopic(user, topic)
+                .map(progress -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("table_of_contents", progress.getToc());
+                    response.put("trivia", progress.getTrivia());
+                    response.put("image_urls", progress.getImageUrls());
+                    return response;
+                })
+                .orElseThrow(() -> new RuntimeException("Progress not found"));
     }
 
     public List<String> getTableOfContents(String email, String topic) {

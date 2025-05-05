@@ -108,18 +108,24 @@ public class UserController {
 
     @PostMapping("/progress/saveTOC")
     public ResponseEntity<String> saveUserTOC(@RequestBody UserTopicProgressRequest request) {
-        progressService.saveUserTOC(request.getEmail(), request.getTopic(), request.getToc());
-        return ResponseEntity.ok("TOC saved for user.");
+        progressService.saveUserTOC(
+                request.getEmail(),
+                request.getTopic(),
+                request.getToc(),
+                request.getTrivia(),
+                request.getImageUrls()
+        );return ResponseEntity.ok("TOC saved for user.");
     }
 
 
     @GetMapping("/progress/getTOC")
     public ResponseEntity<?> getTOC(@RequestParam String email, @RequestParam String topic) {
-        List<String> tableOfContents = progressService.getTableOfContents(email, topic);
-        if (tableOfContents != null) {
-            return ResponseEntity.ok(Map.of("table_of_contents", tableOfContents));
-        } else {
-            return ResponseEntity.notFound().build(); // Or handle null TOC appropriately
+        try {
+            Map<String, Object> response = progressService.getTableOfContentsWithMedia(email, topic);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 

@@ -22,6 +22,32 @@ public class UserTopicProgress {
     @Column(name = "lesson")
     private List<String> toc;
 
+    @ElementCollection
+    @CollectionTable(name = "user_topic_trivia", joinColumns = @JoinColumn(name = "user_topic_progress_id"))
+    @Column(name = "trivia", length = 1000)
+    private List<String> trivia;
+
+    @ElementCollection
+    @CollectionTable(name = "user_topic_images", joinColumns = @JoinColumn(name = "user_topic_progress_id"))
+    @Column(name = "image_url")
+    private List<String> imageUrls;
+
+    public List<String> getTrivia() {
+        return trivia;
+    }
+
+    public void setTrivia(List<String> trivia) {
+        this.trivia = trivia;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
+    }
+
     private boolean completed;
 
     // Getters and Setters

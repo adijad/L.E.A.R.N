@@ -16,6 +16,7 @@ const Body = () => {
   const email = localStorage.getItem("userEmail");
   const [summary, setSummary] = useState([]);
   const navigate = useNavigate();
+  const [tocData, setTocData] = useState({}); // State to store TOC data, including trivia and images
 
   // Scroll controls state
   const [showLeftProgress, setShowLeftProgress] = useState(false);
@@ -69,9 +70,33 @@ const Body = () => {
         params: { email, topic: topicName }
       });
 
+
       if (response.data && Array.isArray(response.data.table_of_contents)) {
-        const toc = response.data.table_of_contents;
-        navigate(`/home/table-of-contents?topic=${topicName}`, { state: { topic: topicName, toc } });
+        const {
+          table_of_contents: toc,
+          trivia = [],
+          image_urls = []
+        } = response.data;
+
+
+        // Store TOC data (this is likely working, but the log is misleading due to async nature)
+        setTocData({
+          topic: topicName,
+          toc,
+          trivia,
+          imageUrls: image_urls
+        });
+        console.log("tocData state after update:", tocData);
+
+        navigate(`/home/table-of-contents?topic=${topicName}`, {
+          state: {
+            topic: topicName,
+            toc,
+            trivia, // Passing trivia
+            imageUrls: image_urls // Passing imageUrls
+          }
+        });
+
       } else {
         console.error("Invalid TOC response:", response.data);
       }
@@ -79,7 +104,6 @@ const Body = () => {
       console.error("Error fetching TOC:", error);
     }
   };
-
   const handleScroll = (ref, direction) => {
     const container = ref.current;
     const scrollAmount = container.offsetWidth * 0.8; // Scroll 80% of container width

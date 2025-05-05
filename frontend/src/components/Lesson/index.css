@@ -411,8 +411,6 @@ body {
         transform: translateX(130%);
     }
 }
-
-/* laoding while translating */
 .loader-layout {
     position: fixed;
     top: 0;
@@ -423,10 +421,8 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 10000;
-    background: linear-gradient(
-            rgba(10, 10, 30, 0.7),
-            rgba(10, 10, 30, 0.7)
-    ), url('../../resources/images/bg.png') no-repeat center center/cover;
+    background: linear-gradient(rgba(10, 10, 30, 0.7), rgba(10, 10, 30, 0.7)), url('../../resources/images/bg.png') no-repeat center center/cover;
+    overflow: hidden; /* Disable scrolling on the overlay */
 }
 
 .glass-loading-container {
@@ -440,8 +436,13 @@ body {
     max-width: 800px;
     width: 90%;
     text-align: center;
+    position: fixed; /* Force fixed positioning */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* True center regardless of scroll */
+    max-height: 90vh;
+    overflow-y: auto; /* Allow internal scroll if needed */
 }
-
 .loading-media-glass {
     margin-bottom: 30px;
     animation: fadeInUp 0.5s ease-out;
@@ -568,7 +569,6 @@ body {
 }
 .loader-container {
     display: flex;
-    justify-content: center;
     align-items: center;
     height: auto;
     width: auto;
@@ -577,6 +577,7 @@ body {
 
 .loaderSVG {
     width: 240px;
+    margin-left: 27%;
     height: 60px;
     overflow: visible;
 }

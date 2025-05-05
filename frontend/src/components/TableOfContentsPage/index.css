@@ -239,8 +239,7 @@ body {
 
 /* index.css - Table of Contents Modifications */
 .toc-modern-container {
-  position: fixed; /* Make it take up the whole screen */
-  top: 0;
+  top: 1rem;
   left: 0;
   right: 0;
   bottom: 0;
@@ -278,8 +277,8 @@ body {
 
 .toc-language-selector {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 60px;
+  right: 80px;
   z-index: 10; /* Ensure it's above other card content */
   margin-bottom: 1rem;
   display: flex;
