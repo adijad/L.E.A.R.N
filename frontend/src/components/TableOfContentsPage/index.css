@@ -240,7 +240,7 @@ body {
 /* index.css - Table of Contents Modifications */
 .toc-modern-container {
   position: fixed; /* Make it take up the whole screen */
-  top: 0;
+  top: 1rem;
   left: 0;
   right: 0;
   bottom: 0;

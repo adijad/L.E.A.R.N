@@ -305,7 +305,7 @@ body {
 }
 
 /* Floating Language Selector (TOC screen) */
-.floating-language-selector {
+/* .floating-language-selector {
   position: fixed;
   top: 80px;
   right: 30px;
@@ -318,7 +318,7 @@ body {
   align-items: center;
   gap: 8px;
   font-size: 0.9rem;
-}
+} */
 
 .floating-language-selector select {
   border: 1px solid #ccc;
