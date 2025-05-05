@@ -565,35 +565,42 @@ replicate_api_token = os.getenv("Capstone_replicate_api")
 # ------------------------------
 # Generate Trivia Facts
 # ------------------------------
-def generate_trivia_facts(topic, language: Language = Language.English_USA):
+def generate_trivia_facts(topic, language: Language):
     prompt = (
-        f'Generate exactly 5 short, interesting educational facts about the topic "{topic}".\n\n'
-        "Each fact should:\n"
-        "- Be no more than 2 sentences\n"
-        "- Be numbered on a new line like:\n"
-        "1. ...\n"
-        "2. ...\n"
-        "...\n"
-        "5. ..."
+        f'''
+Generate json of exactly 5 short, interesting educational facts about the topic "{topic}".\n
+Each fact should be no more than 2 sentences. Use the following format - 
+{{
+ facts: []   
+}}
+\n'''
+        
     )
     print(f"📚 [Trivia] Generating facts for: {topic}")
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
+            response_format={"type": "json_object"},
             messages=[
                 {
                     "role": "system",
-                    "content": f"You're an educational trivia generator. Generate facts that are relevant, interesting and informative in {language.value}.",
+                    "content": f"You're an educational trivia generator in **{language.value}** language. Generate facts that are relevant, interesting and informative."
                 },
                 {"role": "user", "content": prompt},
             ],
+            
         )
-        content = response.choices[0].message.content.strip()
-        facts = re.findall(
-            r"\d+\.\s(Did you know\?.*?)(?=\n\d+\.|$)", content, re.DOTALL
-        )
+        
+        content = response.choices[0].message.content
+        
+        data = json.loads(content)
+
+        # Expecting the facts to be under a 'facts' key
+        facts = data.get("facts", [])
+        
         print(f"✅ [Trivia] Found {len(facts)} facts")
         return facts
+    
     except Exception as e:
         print(f"❌ [Trivia] Error: {e}")
         return []
@@ -689,6 +696,7 @@ async def generate_trivia_and_images(topic: str, toc: List[str], language: Langu
             print(f"   {i}. {p}")
 
         # ✅ Generate trivia
+        print(f"trivia language - {language.value}")
         facts = generate_trivia_facts(topic, language)
         print(f"📚 [Trivia] {len(facts)} facts:")
         for i, f in enumerate(facts, 1):
