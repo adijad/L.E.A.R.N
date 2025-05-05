@@ -1,6 +1,55 @@
 # --------------------------------------------------------------
 ###Imports
 # --------------------------------------------------------------
+import asyncio
+import os
+import sys
+import webbrowser
+from typing import List
+from xml.etree import ElementTree
+import threading
+import replicate
+import requests
+from bs4 import BeautifulSoup
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
+from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
+from langchain.agents import AgentExecutor, create_openai_tools_agent
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import Document
+from langchain.tools import Tool
+from langchain_community.tools import WikipediaQueryRun
+from langchain_community.utilities import WikipediaAPIWrapper
+from langchain_google_genai import (ChatGoogleGenerativeAI,
+                                    GoogleGenerativeAIEmbeddings)
+
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'RAG_for_server_testing')))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'RAG_Final_Testing')))
+import json
+import os
+import re
+import time
+from enum import Enum
+from typing import List
+from typing import Literal
+import openai
+import uvicorn
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from langchain_core.prompts import (ChatPromptTemplate,
+                                    HumanMessagePromptTemplate,
+                                    MessagesPlaceholder,
+                                    SystemMessagePromptTemplate)
+from openai import OpenAI
+from pydantic import BaseModel
+from RAG_for_server_testing import tools
+
+from tts_converter import generate_tts_audio
+
+# sys.path.append(
+#     # os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "RAG_code"))
+# )
 
 from langchain_community.tools import WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper
@@ -36,13 +85,36 @@ import numpy as np
 from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.tools import ArxivQueryRun
+from langchain_community.utilities import ArxivAPIWrapper
 import requests
-
+from bs4 import BeautifulSoup
+import requests
+import re
+import arxiv
+import arxiv
+import numpy as np
+from langchain.schema import Document
+from langchain_community.vectorstores import FAISS
+from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chat_models import ChatOpenAI
+from langchain.schema.messages import SystemMessage, HumanMessage
 
 # --------------------------------------------------------------
 ###Load environment variables
 # --------------------------------------------------------------
 load_dotenv()
+
+# ------------------------------
+load_dotenv()
+# ------------------------------
+# OpenAI Client
+# ------------------------------
+
+client = OpenAI(
+    api_key="REMOVED_OPENAI_API_KEY"
+)
 
 google_api_key = os.getenv("GOOGLE_API_KEY")
 google_cse_id = os.getenv("GOOGLE_CSE_ID")
@@ -67,8 +139,11 @@ google_cse_id = os.getenv("GOOGLE_CSE_ID")
 #     references = result["references"]
 #     return references
 
-import requests
-import re
+wiki_vectordb = None
+wiki_retriever = None
+wiki_embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+wiki_text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+
 
 class WikipediaRetriever:
     def __init__(self, top_k_results=3):
@@ -76,6 +151,7 @@ class WikipediaRetriever:
         self.api_url = "https://en.wikipedia.org/w/api.php"
 
     def search(self, query):
+        global wiki_vectordb, wiki_retriever
         params = {
             'action': 'query',
             'format': 'json',
@@ -85,23 +161,62 @@ class WikipediaRetriever:
             'utf8': 1
         }
 
-        # Send a request to Wikipedia's API to search for articles
         response = requests.get(self.api_url, params=params)
-
-        if response.status_code == 200:
-            search_results = response.json().get('query', {}).get('search', [])
-            references = []
-
-            # Extract the titles and create URLs
-            for result in search_results:
-                title = result['title']
-                # Clean the URL by removing any Markdown syntax
-                url = f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}"
-                references.append(url)
-
-            return references
-        else:
+        if response.status_code != 200:
             return []
+
+        search_results = response.json().get('query', {}).get('search', [])
+        references = []
+        documents = []
+
+        for result in search_results:
+            title = result['title']
+            url = f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}"
+            references.append(url)
+
+            # Step 2: Scrape full article content
+            content = self.scrape_wikipedia_content(url)
+            if content:
+                documents.append(Document(
+                    page_content=content,
+                    metadata={"source": url}
+                ))
+
+        # Step 3: Store content in FAISS
+        if documents:
+            chunks = wiki_text_splitter.split_documents(documents)
+            if wiki_vectordb is None:
+                wiki_vectordb = FAISS.from_documents(chunks, wiki_embeddings)
+                wiki_retriever = wiki_vectordb.as_retriever()
+            else:
+                wiki_vectordb.add_documents(chunks)
+
+        # Step 4: Retrieve semantically relevant sources
+        if wiki_retriever:
+            results = wiki_retriever.get_relevant_documents(query)
+            top_sources = []
+            seen = set()
+            for doc in results:
+                src = doc.metadata.get("source")
+                if src and src not in seen:
+                    top_sources.append(src)
+                    seen.add(src)
+                if len(top_sources) >= self.top_k_results:
+                    break
+            return top_sources
+
+        # Fallback if vector search fails
+        return references
+
+    def scrape_wikipedia_content(self, url):
+        try:
+            response = requests.get(url, timeout=5)
+            soup = BeautifulSoup(response.content, 'html.parser')
+            paragraphs = soup.find_all('p')
+            return '\n'.join([p.get_text() for p in paragraphs if p.get_text(strip=True)]).strip()
+        except Exception as e:
+            print(f"Error scraping {url}: {e}")
+            return ""
 
 
 def wikipedia_with_clickable_link(query):
@@ -117,7 +232,7 @@ def wikipedia_with_clickable_link(query):
     return clean_references
 
 #
-# query = "Indigenous Peoples and Societies of Americas"
+# query = "American History"
 # response = wikipedia_with_clickable_link(query)
 #
 # # Print the URLs (references) returned
@@ -128,135 +243,170 @@ def wikipedia_with_clickable_link(query):
 ### Initialize Arxiv API Wrapper for Document Retrieval
 #---------------------------------------------------------------
 
-# console = Console()
-#
-#
-# class ArxivRetriever:
-#     def __init__(self, top_k_results=3, doc_content_chars_max=200):
-#         self.wrapper = ArxivAPIWrapper(top_k_results=top_k_results, doc_content_chars_max=doc_content_chars_max)
-#
-#     def search(self, query):
-#         """Fetches ArXiv papers and returns both text and URLs."""
-#         arxiv = ArxivQueryRun(api_wrapper=self.wrapper)
-#         results = arxiv.run(query)
-#         return results
-#
-#
-# def arxiv_with_clickable_link(query):
-#     retriever = ArxivRetriever()
-#     results = retriever.search(query)
-#
-#     # Check if results are strings (plain text) or structured objects
-#     if isinstance(results, list) and isinstance(results[0], str):  # If results are just text
-#         for idx, paper in enumerate(results):
-#             console.print(f"[bold green]ArXiv Response {idx + 1}: {paper[:300]}...[/bold green]\n")
-#         return results
-#
-#     # If results are structured objects
-#     for paper in results:
-#         if hasattr(paper, 'entry_id'):  # Check if the object has 'entry_id'
-#             url = paper.entry_id
-#             console.print(
-#                 f"[bold green]ArXiv Response: Title: {paper.title}\nSummary: {paper.summary[:300]}...[/bold green]")
-#             console.print(f"[bold blue][link={url}]Click here to see the full paper[/link][/bold blue]\n")
-#         else:
-#             console.print(f"[bold red]Error: The retrieved data is not in the expected format.[/bold red]\n")
-#
-#     return results
-#
-#
-# ### Test Arxiv Tool
-# query = "Quantum Computing"
-# response = arxiv_with_clickable_link(query)
-#
-# # Print raw response (just in case you want to check the text)
-# print(response)
+# --- Globals for ArXiv ---
+arxiv_vectordb = None
+arxiv_retriever = None
 
-# --------------------------------------------------------------
-### Initialize Google Scholar API Wrapper for Document Retrieval
-#---------------------------------------------------------------
-# class GoogleScholarRetriever:
-#     def __init__(self, top_k=3):
-#         self.wrapper = GoogleSearchAPIWrapper(
-#             google_api_key=google_api_key,
-#             google_cse_id=google_cse_id
-#         )
-#         self.search = GoogleSearchRun(api_wrapper=self.wrapper)
-#         self.top_k = top_k
-#
-#     def search(self, query):
-#         results = self.search.run(query)
-#         return results[:self.top_k]
-#
-#
-# def google_scholar_with_clickable_link(query):
-#     retriever = GoogleScholarRetriever(top_k=3)
-#     results = retriever.search(query)
-#
-#     # Extract only clean URLs
-#     clean_links = [entry.get("link", "") for entry in results if "link" in entry]
-#
-#     # Debug print
-#     print(f"\nGoogle Scholar URLs: {clean_links}")
-#
-#     return clean_links
-#
-# ### Test Google Scholar Tool
-# query = "Quantum Computing"
-# response = google_scholar_with_clickable_link(query)
+arxiv_embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+arxiv_text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 
+llm_filter = ChatOpenAI(
+    model="gpt-4o-mini",
+    temperature=0,
+    max_tokens=700,
+    openai_api_key=os.getenv("OPENAI_API_KEY")
+)
 
+class ArxivRetriever:
+    def __init__(self, top_k_results=3):
+        self.top_k_results = top_k_results
 
-# class GoogleScholarRetriever:
-#     def __init__(self):
-#         self.wrapper = GoogleSearchAPIWrapper(
-#             google_api_key=google_api_key,
-#             google_cse_id=google_cse_id
-#         )
-#         self.search = GoogleSearchRun(api_wrapper=self.wrapper)
+    def is_relevant_to_topic_arxiv(self, text, topic):
+        """Use LLM to decide if this text is about the given topic."""
+        messages = [
+            SystemMessage(content="You're given a scientific paper abstract and title."),
+            HumanMessage(content=f"""Given the following text, determine if this paper is about: "{topic}"?
+
+Text:
+{text}
+
+Answer only "yes" or "no".""")
+
+        ]
+        response = llm_filter.invoke(messages)
+        return response.content.strip().lower() == "yes"
+
+    def search(self, query):
+        global arxiv_vectordb, arxiv_retriever
+
+        try:
+            search = arxiv.Search(
+                query=query,
+                max_results=self.top_k_results * 5,
+                sort_by=arxiv.SortCriterion.Relevance
+            )
+            results = list(search.results())
+        except Exception as e:
+            print(f"Error querying ArXiv API: {e}")
+            return []
+
+        documents = []
+        references = []
+
+        for paper in results:
+            try:
+                title = paper.title
+                abstract = paper.summary
+                url = paper.entry_id
+
+                if not (title and abstract and url):
+                    continue
+
+                full_text = f"{title.strip()}\n\n{abstract.strip()}"
+
+                # ✅ Step: Ask LLM if it's about the topic
+                if self.is_relevant_to_topic_arxiv(full_text, query):
+                    references.append(url)
+                    documents.append(Document(
+                        page_content=full_text,
+                        metadata={"source": url}
+                    ))
+
+            except Exception as e:
+                print(f"Skipping paper due to error: {e}")
+                continue
+
+        # Skip if LLM said none are relevant
+        if not documents:
+            return []
+
+        # ✅ Embed & store in FAISS
+        chunks = arxiv_text_splitter.split_documents(documents)
+        if arxiv_vectordb is None:
+            arxiv_vectordb = FAISS.from_documents(chunks, arxiv_embeddings)
+            arxiv_retriever = arxiv_vectordb.as_retriever()
+        else:
+            arxiv_vectordb.add_documents(chunks)
+
+        # ✅ Search and return top-k sources
+        if arxiv_retriever:
+            results = arxiv_retriever.get_relevant_documents(query, k=10)
+            top_sources = []
+            seen = set()
+            for doc in results:
+                src = doc.metadata.get("source")
+                if src and src not in seen:
+                    top_sources.append(src)
+                    seen.add(src)
+                if len(top_sources) >= self.top_k_results:
+                    break
+            return top_sources
+
+        return references
+
+def arxiv_with_clickable_link(query):
+    retriever = ArxivRetriever(top_k_results=3)
+    references = retriever.search(query)
+    return [ref.replace("\n", "") for ref in references]
+
 #
-#     def search(self, query):
-#         """Fetches Google Scholar search results and returns text and URLs."""
-#         results = self.search.run(query)
-#         return results
 #
+### Test Arxiv Tool
+# query = "American History"
+# results = arxiv_with_clickable_link(query)  # ✅ You forgot this line
 #
-# def google_scholar_with_clickable_link(query):
-#     retriever = GoogleScholarRetriever()
-#     results = retriever.search(query)
-#
-#     for entry in results:
-#         # Extract URL
-#         url = entry['link']
-#
-#         # Display result in PyCharm terminal with Rich
-#         console.print(
-#             f"[bold green]Google Scholar Response: Title: {entry['title']}\nSnippet: {entry['snippet']}[/bold green]")
-#         console.print(f"[bold blue][link={url}]Click here to see the article[/link][/bold blue]\n")
-#
-#     return results
-#
-# ### Test Google Scholar Tool
-# query = "Quantum Computing"
-# response = google_scholar_with_clickable_link(query)
-#
-# # Print raw response (just in case you want to check the text)
-# print(response)
+# for ref in results:
+#     print(ref)
 
 # --------------------------------------------------------------
 ### Initialize PubMed
 #---------------------------------------------------------------
+# -----------------------------
+# Load Environment Variables
+# -----------------------------
+load_dotenv()
+PUBMED_API_KEY = os.getenv("PUBMED_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-######### Class: PubMedLoader (Fetching Articles)
+# -----------------------------
+# LLM for Filtering
+# -----------------------------
+llm_filter_pubmed = ChatOpenAI(
+    model="gpt-4o-mini",
+    temperature=0,
+    max_tokens=700,
+    openai_api_key=OPENAI_API_KEY
+)
+
+def is_relevant_to_topic_pubmed(text: str, topic: str) -> bool:
+    """Use LLM to decide if text is about the query topic."""
+    messages = [
+        SystemMessage(content="You are a helpful academic assistant."),
+        HumanMessage(content=f"""Does the following abstract relate to the topic: "{topic}"?
+
+Text:
+{text}
+
+Respond only with "yes" or "no".""")
+    ]
+    try:
+        response = llm_filter_pubmed.invoke(messages)
+        return response.content.strip().lower() == "yes"
+    except Exception as e:
+        print(f"LLM filtering error: {e}")
+        return False
+
+# -----------------------------
+# PubMed Loader
+# -----------------------------
 class PubMedLoader:
-    def __init__(self, query, top_k=3):
+    def __init__(self, query, top_k=5):
         self.query = query
         self.top_k = top_k
-        self.api_key = os.getenv("PUBMED_API_KEY")
+        self.api_key = PUBMED_API_KEY
         self.base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 
     def fetch_article_ids(self):
-        """Fetches PubMed article IDs for a given query."""
         params = {
             "db": "pubmed",
             "term": self.query,
@@ -264,123 +414,419 @@ class PubMedLoader:
             "retmax": self.top_k,
             "api_key": self.api_key
         }
-        response = requests.get(self.base_url, params=params).json()
-        return response.get("esearchresult", {}).get("idlist", [])
+        try:
+            response = requests.get(self.base_url, params=params).json()
+            return response.get("esearchresult", {}).get("idlist", [])
+        except Exception as e:
+            print(f"Error fetching article IDs: {e}")
+            return []
 
     def fetch_article_abstracts(self, article_ids):
-        """Fetches full abstracts for given PubMed article IDs."""
         articles = []
         for article_id in article_ids:
-            url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={article_id}&retmode=text&rettype=abstract&api_key={self.api_key}"
-            article_text = requests.get(url).text
-            articles.append({"id": article_id, "content": article_text})
+            if not article_id.strip():
+                continue  # skip blank IDs
+            url = (
+                f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+                f"?db=pubmed&id={article_id}&retmode=text&rettype=abstract&api_key={self.api_key}"
+            )
+            try:
+                article_text = requests.get(url).text
+                articles.append({"id": article_id, "content": article_text})
+            except Exception as e:
+                print(f"Error fetching article {article_id}: {e}")
         return articles
 
     def load(self):
-        """Fetches articles and returns them as raw text."""
-        article_ids = self.fetch_article_ids()
-        if not article_ids:
-            return []
+        ids = self.fetch_article_ids()
+        return self.fetch_article_abstracts(ids) if ids else []
 
-        return self.fetch_article_abstracts(article_ids)
+# -----------------------------
+# FAISS + Embedding Setup
+# -----------------------------
+pubmed_vectordb = None
+pubmed_retriever = None
 
-
-###### Embedding Model & FAISS Initialization
-
-# Initialize Google AI Embeddings
 embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-
-# Initialize FAISS as None (will be created when data is available)
-vectordb = None
-retriever = None
-
-# Text Splitter for chunking abstracts before storing
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 
+# -----------------------------
+# Main PubMed Retrieval Function
+# -----------------------------
+def retrieve_pubmed_articles(query: str):
+    global pubmed_vectordb, pubmed_retriever
 
-########## Function: Retrieve PubMed Articles
+    if pubmed_retriever:
+        results = pubmed_retriever.get_relevant_documents(query)
+        return list({doc.metadata["source"] for doc in results if "source" in doc.metadata})
 
-def retrieve_pubmed_articles(query):
-    global vectordb, retriever
-
-    # Check FAISS first
-    if retriever:
-        similar_docs = retriever.get_relevant_documents(query)
-        if similar_docs:
-            print("Retrieving from FAISS (Cached Results)")
-            return similar_docs
-
-    print("No Cached Results, Calling PubMed API...")
-
-    # Fetch fresh articles from PubMed API
-    pubmed_loader = PubMedLoader(query, top_k=3)
-    docs = pubmed_loader.load()
+    loader = PubMedLoader(query=query, top_k=8)
+    docs = loader.load()
 
     if not docs:
-        print("No articles retrieved from PubMed.")
+        print("❌ No documents retrieved from PubMed.")
         return []
 
-    print(f"Retrieved {len(docs)} articles from PubMed")
+    print(f"📄 Retrieved {len(docs)} docs. Filtering by LLM...")
 
-    # Displaying results with clickable links using Rich
+    filtered_docs = []
     for doc in docs:
-        article_id = doc['id']
-        article_content = doc['content']
-        url = f"https://pubmed.ncbi.nlm.nih.gov/{article_id}"
+        text = doc.get("content", "").strip()
+        article_id = doc.get("id", "").strip()
 
-        # Render link with Rich
-        # console.print(f"[bold green]PubMed Response: {article_content[:300]}...[/bold green]")
-        # console.print(f"[bold blue][link={url}]Click here to see the full article[/link][/bold blue]\n")
+        if not article_id or not text:
+            continue  # skip malformed items
 
-    # Store new results in FAISS only if there are documents
-    doc_objects = [Document(page_content=doc['content']) for doc in docs]
+        if is_relevant_to_topic_pubmed(text, query):
+            url = f"https://pubmed.ncbi.nlm.nih.gov/{article_id}"
+            filtered_docs.append(Document(page_content=text, metadata={"source": url}))
+        else:
+            print(f"⚠️ Skipping irrelevant doc: {article_id}")
 
-    if doc_objects:
-        chunked_documents = text_splitter.split_documents(doc_objects)
+    if not filtered_docs:
+        print("⚠️ No relevant documents found.")
+        return []
 
-        # Store in FAISS
-        vectordb = FAISS.from_documents(chunked_documents, embeddings)
-        retriever = vectordb.as_retriever()
-        print("New results stored in FAISS for future queries.")
+    print(f"✅ Retained {len(filtered_docs)} relevant docs. Indexing in FAISS...")
 
-    return doc_objects
+    chunks = text_splitter.split_documents(filtered_docs)
+    if pubmed_vectordb is None:
+        pubmed_vectordb = FAISS.from_documents(chunks, embeddings)
+        pubmed_retriever = pubmed_vectordb.as_retriever()
+    else:
+        pubmed_vectordb.add_documents(chunks)
 
-### Test PubMed Tool
+    results = pubmed_retriever.get_relevant_documents(query)
+    return list({doc.metadata["source"] for doc in results if "source" in doc.metadata})
 
-# Test PubMed Retrieval
-# query = "Artificial Intelligence in Healthcare"
+# -----------------------------
+# Example Usage
+# -----------------------------
+# Test PubMed Tool
+# query = "American History"
 # results = retrieve_pubmed_articles(query)
 #
-# # Print the response
-# for idx, result in enumerate(results):
-#     print(f"\n🔹 Result {idx+1}:\n{result.page_content[:500]}...")
+# # Print the URLs
+# for idx, url in enumerate(results):
+#     print(f"\n🔹 Result {idx+1}: {url}")
+
+
+# --------------------------------------------------------------
+# Semantic Scholar Search Tool
+#---------------------------------------------------------------
+
+load_dotenv()
+
+SEMANTIC_API_KEY = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+llm_filter_semantic = ChatOpenAI(
+    model="gpt-4o-mini",
+    temperature=0,
+    max_tokens=700,
+    openai_api_key=OPENAI_API_KEY
+)
+
+def is_relevant_to_topic_semantic(text: str, topic: str) -> bool:
+    messages = [
+        SystemMessage(content="You are a helpful academic assistant."),
+        HumanMessage(content=f"""Does the following abstract relate to the topic: "{topic}"?
+
+Text:
+{text}
+
+Respond only with "yes" or "no".""")
+    ]
+    try:
+        response = llm_filter_semantic.invoke(messages)
+        return response.content.strip().lower() == "yes"
+    except Exception as e:
+        print(f"LLM filtering error: {e}")
+        return False
+
+# FAISS globals
+semantic_vectordb = None
+semantic_retriever = None
+
+embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+
+def retrieve_semantic_scholar_articles(query: str):
+    global semantic_vectordb, semantic_retriever
+
+    if semantic_retriever:
+        results = semantic_retriever.get_relevant_documents(query)
+        return [doc.metadata["source"] for doc in results if "source" in doc.metadata]
+
+    headers = {
+        "x-api-key": SEMANTIC_API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    params = {
+        "query": query,
+        "limit": 10,
+        "fields": "title,abstract,url"
+    }
+
+    try:
+        res = requests.get(
+            "https://api.semanticscholar.org/graph/v1/paper/search",
+            params=params,
+            headers=headers
+        )
+        papers = res.json().get("data", [])
+    except Exception as e:
+        print(f"Error calling Semantic Scholar API: {e}")
+        return []
+
+    documents = []
+    references = []
+
+    for paper in papers:
+        try:
+            title = paper.get("title", "")
+            abstract = paper.get("abstract", "")
+            url = paper.get("url", "")
+
+            if not (title and abstract and url):
+                continue
+
+            full_text = f"{title.strip()}\n\n{abstract.strip()}"
+
+            if is_relevant_to_topic_semantic(full_text, query):
+                documents.append(Document(
+                    page_content=full_text,
+                    metadata={"source": url}
+                ))
+                references.append(url)
+
+        except Exception as e:
+            print(f"Skipping paper due to error: {e}")
+            continue
+
+    if not documents:
+        return []
+
+    chunks = text_splitter.split_documents(documents)
+
+    if semantic_vectordb is None:
+        semantic_vectordb = FAISS.from_documents(chunks, embeddings)
+        semantic_retriever = semantic_vectordb.as_retriever()
+    else:
+        semantic_vectordb.add_documents(chunks)
+
+    return references
+
+
+# ----------------------------------------
+# Gutenberg Search Tool
+# ----------------------------------------
+
+gutenberg_vectordb = None
+gutenberg_retriever = None
+
+embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+
+llm_filter_gutenberg = ChatOpenAI(
+    model="gpt-4o-mini",
+    temperature=0,
+    max_tokens=700
+)
+
+def is_relevant_to_topic(text: str, topic: str) -> bool:
+    messages = [
+        SystemMessage(content="You are a helpful assistant for filtering books by topic."),
+        HumanMessage(content=f"""Does the following book description relate to the topic: "{topic}"?
+
+Text:
+{text}
+
+Respond only with "yes" or "no". Even partial or indirect relevance counts as "yes".""")
+    ]
+    try:
+        response = llm_filter_gutenberg.invoke(messages)
+        return response.content.strip().lower() == "yes"
+    except Exception as e:
+        print(f"⚠️ LLM filter error: {e}")
+        return False
+
+def gutenberg_with_clickable_link(query: str, top_k_results=5):
+    global gutenberg_vectordb, gutenberg_retriever
+
+    try:
+        response = requests.get(f"https://gutendex.com/books/?search={query}", timeout=15)
+        items = response.json().get("results", [])[:top_k_results * 4]
+    except Exception as e:
+        print(f"❌ Error querying Gutendex API: {e}")
+        return []
+
+    references = []
+    documents = []
+
+    for item in items:
+        try:
+            title = item.get("title", "")
+            authors = [a["name"] for a in item.get("authors", [])]
+            book_id = item.get("id")
+            url = f"https://www.gutenberg.org/ebooks/{book_id}"
+
+            if not title or not book_id:
+                continue
+
+            # Just use title and authors for filtering
+            full_text = f"{title} by {', '.join(authors)}"
+
+            if is_relevant_to_topic(full_text, query):
+                references.append(url)
+                documents.append(Document(
+                    page_content=full_text,
+                    metadata={"source": url}
+                ))
+            else:
+                print(f"⛔ Skipped irrelevant: {title} ({book_id})")
+
+        except Exception as e:
+            print(f"⚠️ Error processing book {item.get('id')}: {e}")
+            continue
+
+    if not documents:
+        return []
+
+    chunks = text_splitter.split_documents(documents)
+    if gutenberg_vectordb is None:
+        gutenberg_vectordb = FAISS.from_documents(chunks, embeddings)
+        gutenberg_retriever = gutenberg_vectordb.as_retriever()
+    else:
+        gutenberg_vectordb.add_documents(chunks)
+
+    # Use FAISS to retrieve final top URLs
+    if gutenberg_retriever:
+        results = gutenberg_retriever.get_relevant_documents(query)
+        top_sources = []
+        seen = set()
+        for doc in results:
+            src = doc.metadata.get("source")
+            if src and src not in seen:
+                top_sources.append(src)
+                seen.add(src)
+            if len(top_sources) >= top_k_results:
+                break
+        return top_sources
+
+    return references
+
+# query = "American History"
+# results = gutenberg_with_clickable_link(query)
 #
+# for url in results:
+#     print(url)
 
+# -------------------------------------------------------------
+# Internet Archive Search Tool
+#---------------------------------------------------------------
 
+embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 
-
-# Wikipedia Tool
-wikipedia_tool = Tool(
-    name="Wikipedia_Search",  # ✅ Name must be valid for Gemini API
-    func=wikipedia_with_clickable_link,  # Calls the function we modified
-    description="Search for Wikipedia articles on a given topic. Returns both content and source URL."
+# Initialize LLM Filter
+llm_filter_internet_archive = ChatOpenAI(
+    model="gpt-4o-mini",
+    temperature=0,
+    max_tokens=700
 )
 
-# PubMed Tool
-pubmed_tool = Tool(
-    name="PubMed_Search",
-    func=retrieve_pubmed_articles,  # Using the PubMed retrieval function
-    description="Search for academic research papers from PubMed based on a given query. Use this tool for medical and scientific topics."
-)
+# Global FAISS store
+internet_archive_vectordb = None
+internet_archive_retriever = None
 
-# google_scholar_tool = Tool(
-#     name="GoogleScholar_Search",
-#     func=google_scholar_with_clickable_link,
-#     description="Search Google Scholar for academic articles and return source URLs only."
-# )
+# LLM-based filter
+def is_relevant_to_topic_internet_archive(text: str, topic: str) -> bool:
+    messages = [
+        SystemMessage(content="You are a helpful assistant for filtering books by topic."),
+        HumanMessage(content=f"""Does the following book metadata relate to the topic: "{topic}"?
 
-tools = [wikipedia_tool, pubmed_tool]
+Text:
+{text}
 
+Respond only with "yes" or "no".""")
+    ]
+    try:
+        response = llm_filter_internet_archive.invoke(messages)
+        return response.content.strip().lower() == "yes"
+    except Exception as e:
+        print(f"LLM filtering error: {e}")
+        return False
 
+# Main function
+def internet_archive_with_clickable_link(query: str, top_k_results=5):
+    global internet_archive_vectordb, internet_archive_retriever
 
+    search_url = "https://archive.org/advancedsearch.php"
+    params = {
+        'q': f'{query} AND mediatype:texts',
+        'fl[]': ['identifier', 'title', 'creator', 'year'],
+        'rows': top_k_results * 4,
+        'output': 'json'
+    }
 
+    try:
+        response = requests.get(search_url, params=params)
+        items = response.json()['response']['docs']
+    except Exception as e:
+        print(f"❌ Error querying Internet Archive API: {e}")
+        return []
+
+    references = []
+    documents = []
+
+    for item in items:
+        identifier = item.get("identifier", "")
+        title = item.get("title", "Unknown Title")
+        creator = item.get("creator", ["Unknown Author"])
+        year = item.get("year", "Unknown Year")
+        url = f"https://archive.org/details/{identifier}"
+
+        metadata_text = f"{title} by {', '.join(creator)} ({year})"
+
+        if is_relevant_to_topic_internet_archive(metadata_text, query):
+            references.append(url)
+            documents.append(Document(
+                page_content=metadata_text,
+                metadata={"source": url}
+            ))
+        else:
+            print(f"⛔ Skipped irrelevant: {metadata_text}")
+
+    if not documents:
+        return []
+
+    chunks = text_splitter.split_documents(documents)
+    if internet_archive_vectordb is None:
+        internet_archive_vectordb = FAISS.from_documents(chunks, embeddings)
+        internet_archive_retriever = internet_archive_vectordb.as_retriever()
+    else:
+        internet_archive_vectordb.add_documents(chunks)
+
+    if internet_archive_retriever:
+        results = internet_archive_retriever.get_relevant_documents(query)
+        top_sources = []
+        seen = set()
+        for doc in results:
+            src = doc.metadata.get("source")
+            if src and src not in seen:
+                top_sources.append(src)
+                seen.add(src)
+            if len(top_sources) >= top_k_results:
+                break
+        return top_sources
+
+    return references
+
+# query = "Causes of the American Revolution"
+# results = internet_archive_with_clickable_link(query)
+#
+# print("\n📚 Internet Archive References Found:\n")
+# for idx, url in enumerate(results, start=1):
+#     print(f"{idx}. {url}")

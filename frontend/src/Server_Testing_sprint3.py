@@ -36,7 +36,7 @@ from langchain_core.prompts import (
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from openai import OpenAI
 from pydantic import BaseModel
-from RAG_for_server_testing import tools
+# from RAG_for_server_testing import tools
 from tts_converter import generate_tts_audio
 import asyncio
 import replicate
@@ -325,37 +325,55 @@ updated_prompt = ChatPromptTemplate.from_messages(
 # Step 2: Define Tools and Agent
 # ------------------------------
 
-agent = create_openai_tools_agent(llm, tools, updated_prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
+# agent = create_openai_tools_agent(llm, tools, updated_prompt)
+# agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
 
 # ------------------------------
 # RAG Retrieval Function
 # ------------------------------
 
 
+from RAG_for_server_testing import (
+    wikipedia_with_clickable_link,
+    arxiv_with_clickable_link,
+    retrieve_pubmed_articles,
+    retrieve_semantic_scholar_articles,
+    gutenberg_with_clickable_link,
+    internet_archive_with_clickable_link,
+)
+
 def rag_retrieve(query: str) -> list:
+    references = []
+
     try:
-        response = agent_executor.invoke({"input": query})
-        output_text = response.get("output", "")
-        # print(f"Raw output from agent_executor: {output_text}")
+        # Wikipedia
+        wiki_results = wikipedia_with_clickable_link(query)
+        references.extend([f"Source: {url.strip()}" for url in wiki_results])
 
-        references = []
-        urls = re.findall(r"https?://[^\s\)]+", output_text)
-        urls = list(set(urls))
+        # ArXiv
+        arxiv_results = arxiv_with_clickable_link(query)
+        references.extend([f"Source: {url.strip()}" for url in arxiv_results])
 
-        for url in urls:
-            clean_url = re.sub(
-                r"[\)\]]$", "", url
-            )  # Removing `]` if it was part of the URL in Markdown
-            references.append(f"Source: {clean_url.strip()}")
-        if not references:
-            print(" No references found. Using fallback.")
-            references = [{"reference": "No references found."}]
+        # PubMed
+        pubmed_urls = retrieve_pubmed_articles(query)
+        references.extend([f"Source: {url.strip()}" for url in pubmed_urls if url.strip()])
 
-        return references
+        # Gutenberg
+        gutenberg_urls = gutenberg_with_clickable_link(query)
+        references.extend([f"Source: {url.strip()}" for url in gutenberg_urls if url.strip()])
+
+        # Internet Archive
+        archive_urls = internet_archive_with_clickable_link(query)
+        references.extend([f"Source: {url.strip()}" for url in archive_urls if url.strip()])
+
+        # Semantic Scholar (optional)
+        # semantic_urls = retrieve_semantic_scholar_articles(query)
+        # references.extend([f"Source: {url.strip()}" for url in semantic_urls if url.strip()])
+
+        return list(set(references)) or ["No references found."]
 
     except Exception as e:
-        print(f" Error in RAG retrieval: {e}")
+        print(f"❌ Error in rag_retrieve: {e}")
         return ["Error in retrieval."]
 
 
