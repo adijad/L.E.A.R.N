@@ -325,8 +325,6 @@ updated_prompt = ChatPromptTemplate.from_messages(
 # Step 2: Define Tools and Agent
 # ------------------------------
 
-# agent = create_openai_tools_agent(llm, tools, updated_prompt)
-# agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
 
 # ------------------------------
 # RAG Retrieval Function
@@ -351,12 +349,12 @@ def rag_retrieve(query: str) -> list:
         references.extend([f"Source: {url.strip()}" for url in wiki_results])
 
         # ArXiv
-        arxiv_results = arxiv_with_clickable_link(query)
-        references.extend([f"Source: {url.strip()}" for url in arxiv_results])
+        # arxiv_results = arxiv_with_clickable_link(query)
+        # references.extend([f"Source: {url.strip()}" for url in arxiv_results])
 
         # PubMed
-        pubmed_urls = retrieve_pubmed_articles(query)
-        references.extend([f"Source: {url.strip()}" for url in pubmed_urls if url.strip()])
+        # pubmed_urls = retrieve_pubmed_articles(query)
+        # references.extend([f"Source: {url.strip()}" for url in pubmed_urls if url.strip()])
 
         # Gutenberg
         gutenberg_urls = gutenberg_with_clickable_link(query)
@@ -375,6 +373,7 @@ def rag_retrieve(query: str) -> list:
     except Exception as e:
         print(f"❌ Error in rag_retrieve: {e}")
         return ["Error in retrieval."]
+
 
 
 # ------------------------------
@@ -583,36 +582,42 @@ replicate_api_token = os.getenv("Capstone_replicate_api")
 # ------------------------------
 # Generate Trivia Facts
 # ------------------------------
-def generate_trivia_facts(topic):
+def generate_trivia_facts(topic, language: Language):
     prompt = (
-        f'Generate exactly 5 short, interesting educational facts about the topic "{topic}".\n\n'
-        "Each fact should:\n"
-        "- Start with 'Did you know?'\n"
-        "- Be no more than 2 sentences\n"
-        "- Be numbered on a new line like:\n"
-        "1. Did you know? ...\n"
-        "2. Did you know? ...\n"
-        "...\n"
-        "5. Did you know? ..."
+        f'''
+Generate json of exactly 5 short, interesting educational facts about the topic "{topic}".\n
+Each fact should be no more than 2 sentences. Use the following format -
+{{
+ facts: []
+}}
+\n'''
+
     )
     print(f"📚 [Trivia] Generating facts for: {topic}")
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
+            response_format={"type": "json_object"},
             messages=[
                 {
                     "role": "system",
-                    "content": "You're an educational trivia generator. Generate facts that are relevant, interesting and informative.",
+                    "content": f"You're an educational trivia generator in **{language.value}** language. Generate facts that are relevant, interesting and informative."
                 },
                 {"role": "user", "content": prompt},
             ],
+
         )
-        content = response.choices[0].message.content.strip()
-        facts = re.findall(
-            r"\d+\.\s(Did you know\?.*?)(?=\n\d+\.|$)", content, re.DOTALL
-        )
+
+        content = response.choices[0].message.content
+
+        data = json.loads(content)
+
+        # Expecting the facts to be under a 'facts' key
+        facts = data.get("facts", [])
+
         print(f"✅ [Trivia] Found {len(facts)} facts")
         return facts
+
     except Exception as e:
         print(f"❌ [Trivia] Error: {e}")
         return []
@@ -630,19 +635,24 @@ def generate_image_prompts_from_toc(topic: str, toc: List[str]) -> List[str]:
         toc_string = "\n".join(f"{i+1}. {title}" for i, title in enumerate(toc[:10]))
 
         user_prompt = (
-            f"You're a creative visual educator helping an AI generate educational illustrations for a topic: '{topic}'.\n\n"
-            f"Here’s the table of contents:\n{toc_string}\n\n"
-            f"Now write 5 short, vivid prompts (1–2 sentences each) that an image generation model like Flux can use. "
-            f"Each prompt should visualize a major moment or idea from the TOC. Use descriptive and evocative language to help the model generate detailed images.\n\n"
-            f"Format your response as:\n- Prompt 1: ...\n- Prompt 2: ...\n... up to Prompt 5."
+                    f"You're a creative visual educator helping an AI generate educational illustrations for a topic: '{topic}'.\n\n"
+                    f"Here’s the table of contents:\n{toc_string}\n\n"
+                    f"Now write 5 short, vivid prompts (1–2 sentences each) that an image generation model like Flux can use. "
+                    f"Each prompt should visualize a major moment or idea from the TOC. Use descriptive and evocative language to help the model generate detailed images.\n\n"
+                    f"- All prompts MUST be safe-for-work (SFW).\n"
+                    f"- No nudity, no violence, no mature or suggestive themes, and no disturbing content—even if the TOC includes strong or controversial topics.\n"
+                    f"- If a TOC item implies something sensitive, **reinterpret it** creatively for a school-age audience without losing the core educational idea.\n"
+                    f"- Avoid language or imagery that may be flagged by NSFW filters. Think 'museum exhibit' or 'classroom poster' levels of appropriateness.\n\n"
+                    f"Format your response as:\n- Prompt 1: ...\n- Prompt 2: ...\n... up to Prompt 5."
         )
+
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert in crafting visually rich prompts for educational image generation.",
+                    "content": "You are an expert in crafting visually rich prompts in **English** for educational image generation.",
                 },
                 {"role": "user", "content": user_prompt},
             ],
@@ -667,9 +677,9 @@ def generate_image_prompts_from_toc(topic: str, toc: List[str]) -> List[str]:
 
 
 async def generate_image(prompt: str, i: int) -> str:
-    
+
     flux_client = replicate.Client(api_token=replicate_api_token)
-    
+
     try:
         print(f"📤 [Flux Prompt {i + 1}]: {prompt}")
         output = await flux_client.async_run(
@@ -697,7 +707,7 @@ async def generate_flux_images(prompts: List[str]) -> List[str]:
     return [url for url in results if url]
 
 
-async def generate_trivia_and_images(topic: str, toc: List[str]):
+async def generate_trivia_and_images(topic: str, toc: List[str], language: Language = Language.English_USA):
     print(f"🚀 [Start] Trivia/Image generation for: {topic}")
 
     try:
@@ -708,7 +718,8 @@ async def generate_trivia_and_images(topic: str, toc: List[str]):
             print(f"   {i}. {p}")
 
         # ✅ Generate trivia
-        facts = generate_trivia_facts(topic)
+        print(f"trivia language - {language.value}")
+        facts = generate_trivia_facts(topic, language)
         print(f"📚 [Trivia] {len(facts)} facts:")
         for i, f in enumerate(facts, 1):
             print(f"   {i}. {f}")
@@ -718,14 +729,10 @@ async def generate_trivia_and_images(topic: str, toc: List[str]):
         print(f"🖼️ [Images] {len(image_urls)} URLs:")
         for i, url in enumerate(image_urls, 1):
             print(f"   {i}. {url}")
-        
-        # ✅ Cache
-        # slideshow_cache[topic] = {"facts": facts, "image_urls": image_urls}
-        # print(f"✅ [Cache] Stored slideshow for: {topic}")
 
     except Exception as e:
         print(f"❌ [Generation Failed]: {e}")
-    
+
     return facts, image_urls
 
 
@@ -790,7 +797,7 @@ async def get_lesson_plan(
     response_text = response.choices[0].message.content
     lesson_titles = re.findall(r"\d+\.\s(.+)", response_text)
 
-    trivia, image_urls = await generate_trivia_and_images(topic_request.topic, lesson_titles)
+    trivia, image_urls = await generate_trivia_and_images(topic_request.topic, lesson_titles, language)
     return {"table_of_contents": lesson_titles, "trivia": trivia, "image_urls": image_urls}
 
 
@@ -883,14 +890,14 @@ async def chatbot_qa(request: ChatRequest, language: Language = Language.English
     overview = request.overview.strip()
     content = request.content.strip()
     mode = request.mode.strip().lower()
-    
+
     if language.value not in [lang.value for lang in Language]:
         raise HTTPException(
             status_code=400,
             detail=f"The language '{language.value}' is not supported.",
         )
 
-    
+
     if not selected_text or not toc or not overview or not content or not mode:
         raise HTTPException(
             status_code=400, detail="Missing required fields in request body."
@@ -946,30 +953,6 @@ async def chatbot_qa(request: ChatRequest, language: Language = Language.English
         )
 
     return {"status": "ok", "mode": mode, "answer": answer.strip()}
-
-
-# ------------------------------
-# Step 5: Serve Generated Images and Trivia
-# ------------------------------
-
-
-@app.get("/slideshow_metadata")
-async def get_slideshow_metadata(topic: str):
-    """
-    Returns trivia facts and image URLs for a topic, generated in the background after TOC generation.
-    """
-    data = slideshow_cache.get(topic)
-    if not data:
-        raise HTTPException(
-            status_code=404,
-            detail="Trivia and images not available yet. Please wait or retry.",
-        )
-
-    return {
-        "topic": topic,
-        "facts": data.get("facts", []),
-        "image_urls": data.get("image_urls", []),
-    }
 
 
 # ------------------------------

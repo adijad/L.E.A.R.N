@@ -16,7 +16,7 @@ from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
-from langchain.tools import Tool
+#from langchain.tools import Tool
 from langchain_community.tools import WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper
 from langchain_google_genai import (ChatGoogleGenerativeAI,
@@ -62,7 +62,7 @@ from langchain_google_community import GoogleSearchAPIWrapper, GoogleSearchRun
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import Document
-from langchain.tools import Tool
+#from langchain.tools import Tool
 import requests
 from bs4 import BeautifulSoup
 import asyncio
@@ -750,7 +750,7 @@ def is_relevant_to_topic_internet_archive(text: str, topic: str) -> bool:
 Text:
 {text}
 
-Respond only with "yes" or "no".""")
+Respond only with "yes" or "no". Even partial or indirect relevance counts as "yes".""")
     ]
     try:
         response = llm_filter_internet_archive.invoke(messages)
@@ -823,10 +823,85 @@ def internet_archive_with_clickable_link(query: str, top_k_results=5):
         return top_sources
 
     return references
+"""
 
-# query = "Causes of the American Revolution"
-# results = internet_archive_with_clickable_link(query)
-#
-# print("\n📚 Internet Archive References Found:\n")
-# for idx, url in enumerate(results, start=1):
-#     print(f"{idx}. {url}")
+embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+
+# Global FAISS store and retriever
+internet_archive_vectordb = None
+internet_archive_retriever = None
+
+def internet_archive_with_clickable_link(query: str, top_k_results=5):
+    global internet_archive_vectordb, internet_archive_retriever
+
+    search_url = "https://archive.org/advancedsearch.php"
+    params = {
+        'q': f'{query} AND mediatype:texts',
+        'fl[]': ['identifier', 'title', 'creator', 'year', 'description', 'subject'],
+        'rows': top_k_results * 4,  # extra results for better filtering
+        'output': 'json'
+    }
+
+    try:
+        response = requests.get(search_url, params=params)
+        items = response.json()['response']['docs']
+    except Exception as e:
+        print(f"❌ Error querying Internet Archive API: {e}")
+        return []
+
+    documents = []
+    for item in items:
+        identifier = item.get("identifier", "")
+        title = item.get("title", "Unknown Title")
+        creators = item.get("creator", ["Unknown Author"])
+        year = item.get("year", "Unknown Year")
+        description = item.get("description", "")
+        subjects = item.get("subject", [])
+        url = f"https://archive.org/details/{identifier}"
+
+        metadata_text = (
+            f"{title} by {', '.join(creators)} ({year})\n"
+            f"Description: {description}\n"
+            f"Subjects: {', '.join(subjects)}"
+        )
+
+        documents.append(Document(
+            page_content=metadata_text,
+            metadata={"source": url}
+        ))
+
+    if not documents:
+        return []
+
+    # Split metadata into chunks (in case of long descriptions)
+    chunks = text_splitter.split_documents(documents)
+
+    # Build or update FAISS store
+    if internet_archive_vectordb is None:
+        internet_archive_vectordb = FAISS.from_documents(chunks, embeddings)
+        internet_archive_retriever = internet_archive_vectordb.as_retriever()
+    else:
+        internet_archive_vectordb.add_documents(chunks)
+
+    # Use vector search to retrieve relevant results
+    results = internet_archive_retriever.get_relevant_documents(query)
+    references = []
+    seen = set()
+
+    for doc in results:
+        url = doc.metadata.get("source")
+        if url and url not in seen:
+            references.append(url)
+            seen.add(url)
+        if len(references) >= top_k_results:
+            break
+
+    return references
+
+query = "Key Events of the War: 1939-1941"
+results = internet_archive_with_clickable_link(query)
+
+print("\n📚 Internet Archive References Found:\n")
+for idx, url in enumerate(results, start=1):
+    print(f"{idx}. {url}") """
